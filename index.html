@@ -648,10 +648,10 @@
             }
             showLoading('Saving to browser storage...', '');
             await new Promise(r => setTimeout(r, 0));
-            refreshUI();
             await saveToStorage();
+            refreshUI();
             updateStorageInfo();
-            switchView('query');
+            renderImportFileTable();
         } finally {
             hideLoading();
         }
