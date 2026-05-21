@@ -19,9 +19,31 @@
         .layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 60px); }
         
         /* Sidebar */
-        .sidebar { background: white; border-right: 1px solid var(--gray-200); overflow-y: auto; padding: 12px; min-height: 0; text-align: left; }
-        .sidebar h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); margin: 12px 0 6px; padding: 0 8px; }
+        .sidebar { background: white; border-right: 1px solid var(--gray-200); overflow-y: auto; padding: 12px; min-height: 0; text-align: left; display: flex; flex-direction: column; }
+        .sidebar h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); margin: 12px 0 6px; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; }
+        .sidebar h3 .sidebar-actions { display: flex; gap: 4px; }
+        .sidebar h3 .sidebar-btn { font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--gray-200); background: white; color: var(--gray-500); cursor: pointer; text-transform: none; letter-spacing: 0; font-weight: 500; }
+        .sidebar h3 .sidebar-btn:hover { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
+        .sidebar h3 .sidebar-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
         #table-list { text-align: left; }
+        
+        /* Pages list in sidebar */
+        .page-item { padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; transition: background 0.15s; display: flex; justify-content: space-between; align-items: center; color: var(--gray-900); text-align: left; }
+        .page-item:hover { background: var(--gray-100); }
+        .page-item.active { background: var(--blue-light); color: var(--blue); }
+        .page-item .page-delete { font-size: 0.7rem; color: var(--gray-400); cursor: pointer; opacity: 0; transition: opacity 0.15s; padding: 2px 4px; border-radius: 3px; }
+        .page-item:hover .page-delete { opacity: 1; }
+        .page-item .page-delete:hover { color: var(--red); background: var(--red-light); }
+        
+        /* Sidebar collapsible section */
+        .sidebar-section { border-top: 1px solid var(--gray-200); margin-top: 8px; padding-top: 4px; }
+        .sidebar-section-toggle { cursor: pointer; user-select: none; }
+        .sidebar-section-toggle .chevron { font-size: 0.6rem; transition: transform 0.2s; display: inline-block; }
+        .sidebar-section-toggle .chevron.open { transform: rotate(90deg); }
+        .sidebar-section-body { display: none; padding: 4px 0; }
+        .sidebar-section-body.open { display: block; }
+        .sidebar-import-zone { padding: 12px; border: 2px dashed var(--gray-300); border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.15s; font-size: 0.78rem; color: var(--gray-500); margin: 4px 0; }
+        .sidebar-import-zone:hover { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
         .table-item { padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; transition: background 0.15s; display: flex; justify-content: space-between; align-items: center; color: var(--gray-900); text-align: left; }
         .table-item:hover { background: var(--gray-100); }
         .table-item.active { background: var(--blue-light); color: var(--blue); }
@@ -35,13 +57,18 @@
         .main { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
         
         /* Upload zone */
-        .upload-zone { padding: 32px; border: 2px dashed var(--gray-300); border-radius: var(--radius); text-align: center; transition: all 0.2s; cursor: pointer; background: white; }
-        .upload-zone:hover, .upload-zone.dragover { border-color: var(--blue); background: var(--blue-light); }
-        .upload-zone h2 { font-size: 1.1rem; color: var(--navy); margin-bottom: 8px; font-weight: 700; }
-        .upload-zone p { font-size: 0.85rem; color: var(--gray-500); }
         .upload-zone input { display: none; }
-        .data-files-link { display: inline-block; padding: 10px 16px; background: var(--blue); color: white; border-radius: 8px; font-size: 0.82rem; font-weight: 500; text-decoration: none; white-space: nowrap; box-shadow: var(--shadow); transition: background 0.15s; }
+        .data-files-link { display: inline-block; padding: 6px 10px; background: var(--blue); color: white; border-radius: 6px; font-size: 0.75rem; font-weight: 500; text-decoration: none; white-space: nowrap; transition: background 0.15s; }
         .data-files-link:hover { background: #3b82f6; }
+        
+        /* Pages view */
+        .pages-panel { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; }
+        .page-title-input { font-size: 1.2rem; font-weight: 700; color: var(--navy); border: none; border-bottom: 2px solid transparent; padding: 8px 4px; width: 100%; outline: none; background: transparent; transition: border-color 0.2s; }
+        .page-title-input:focus { border-bottom-color: var(--blue); }
+        .page-content-editor { flex: 1; width: 100%; border: 1px solid var(--gray-200); border-radius: 8px; padding: 12px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.85rem; color: var(--gray-900); resize: none; outline: none; background: white; box-shadow: var(--shadow); min-height: 200px; }
+        .page-content-editor:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+        .page-toolbar { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+        .page-meta { font-size: 0.72rem; color: var(--gray-400); margin-left: auto; }
         
         /* File badges */
         .file-badges { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 8px; }
@@ -215,19 +242,44 @@
     
     <div class="layout">
         <div class="sidebar" id="sidebar">
-            <h3>Loaded Tables</h3>
-            <div id="table-list" class="empty-state" style="padding: 24px; font-size: 0.8rem;">
-                No data loaded yet
+            <h3>Pages <span class="sidebar-actions"><button class="sidebar-btn" onclick="togglePageSort()" id="pageSortBtn" title="Toggle sort">A-Z</button><button class="sidebar-btn" onclick="createNewPage()" title="New page">+ New</button></span></h3>
+            <div id="page-list" style="margin-bottom:4px;">
+                <div style="padding:8px; font-size:0.78rem; color:var(--gray-400);">No pages yet</div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Loaded Tables</h3>
+                <div id="table-list" class="empty-state" style="padding: 12px 8px; font-size: 0.78rem;">
+                    No data loaded yet
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3 class="sidebar-section-toggle" onclick="toggleImportSection()">Import Data <span class="chevron" id="importChevron">&#9654;</span></h3>
+                <div class="sidebar-section-body" id="importSectionBody">
+                    <div class="sidebar-import-zone" id="uploadZone">
+                        Drop files here or click to browse
+                        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+                        <a class="data-files-link" href="https://empyreansolutions.sharepoint.com/Shared%20Documents/Forms/AllItems.aspx?id=%2FShared%20Documents%2FExplorer%2FDemo%20System%2FClaude%20Fake%20Data%2FData%20Set&viewid=bf15d09f%2D66f3%2D4494%2D81f3%2D0cbf31c9069b" target="_blank" rel="noopener" style="text-align:center;">Download Data Files</a>
+                    </div>
+                    <div class="file-badges" id="fileBadges" style="padding:6px 0 0; flex-wrap:wrap;">
+                    </div>
+                    <div style="display:flex; gap:6px; margin-top:6px; align-items:center;">
+                        <button class="btn btn-sm btn-danger" id="deleteAllBtn" style="display:none;" onclick="deleteAllData()">Delete All</button>
+                        <span id="storageInfo" style="font-size:0.7rem; color:var(--gray-500);"></span>
+                    </div>
+                </div>
             </div>
         </div>
         
         <div class="main">
             <div class="view-tabs" id="viewTabs">
                 <div class="view-tab active" onclick="switchView('query')">SQL Query</div>
+                <div class="view-tab" onclick="switchView('pages')">Pages</div>
                 <div class="view-tab" onclick="switchView('explorer')">Data Explorer</div>
                 <div class="view-tab" onclick="switchView('dictionary')">Data Dictionary</div>
-                <div class="view-tab" onclick="switchView('saved')">Saved Queries</div>
-                <div class="view-tab" onclick="switchView('import')">Import Data</div>
             </div>
             
             <!-- SQL Query View -->
@@ -241,7 +293,7 @@
                         <button class="btn btn-primary" onclick="runQuery()">Run Query (Ctrl+Enter)</button>
                         <button class="btn btn-secondary" onclick="clearResults()">Clear</button>
                         <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
-                        <button class="btn btn-secondary" onclick="goToSaveQuery()">Save Query</button>
+                        <button class="btn btn-secondary" onclick="copyToPage()">Copy to Page</button>
                         <button class="btn btn-secondary" onclick="copyEditorLink()">Copy Link</button>
                         <span id="queryTime" style="font-size:0.75rem; color:#64748b; margin-left:auto;"></span>
                     </div>
@@ -260,41 +312,21 @@
                 </div>
             </div>
             
-            <!-- Saved Queries View -->
-            <div id="savedView" style="display:none;">
-                <div class="saved-panel">
-                    <div class="save-form" id="saveForm">
-                        <div class="save-form-title">Save Current Query</div>
-                        <div class="save-form-row">
-                            <label>Name *</label>
-                            <input type="text" id="saveQueryName" placeholder="e.g. Loan CurrBook by Product">
-                        </div>
-                        <div class="save-form-row">
-                            <label>Page</label>
-                            <input type="text" id="saveQueryPage" placeholder="e.g. Loan Detail">
-                            <label>Section</label>
-                            <input type="text" id="saveQuerySection" placeholder="e.g. Portfolio">
-                            <label>Tab</label>
-                            <input type="text" id="saveQueryTab" placeholder="e.g. Summary">
-                        </div>
-                        <div class="save-form-row">
-                            <button class="btn btn-primary btn-sm" onclick="saveCurrentQuery()">Save Query</button>
-                        </div>
+            <!-- Pages View -->
+            <div id="pagesView" style="display:none;">
+                <div class="pages-panel" id="pagesPanel">
+                    <div id="pageEmptyState" class="empty-state" style="flex:1;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/><path d="M8 7h8M8 11h8M8 15h4"/></svg>
+                        <span>Select a page from the sidebar or create a new one</span>
                     </div>
-                    <div class="saved-controls">
-                        <input type="text" id="savedSearch" placeholder="Search saved queries..." oninput="renderSavedQueries()" style="width:200px;">
-                        <select id="savedFilterPage" onchange="renderSavedQueries()">
-                            <option value="">All Pages</option>
-                        </select>
-                        <select id="savedFilterSection" onchange="renderSavedQueries()">
-                            <option value="">All Sections</option>
-                        </select>
-                        <select id="savedFilterTab" onchange="renderSavedQueries()">
-                            <option value="">All Tabs</option>
-                        </select>
-                        <span id="savedInfo" style="font-size:0.75rem;color:var(--gray-500);margin-left:auto;"></span>
+                    <div id="pageEditor" style="display:none; flex:1; flex-direction:column;">
+                        <input type="text" class="page-title-input" id="pageTitleInput" placeholder="Page name..." oninput="onPageTitleChange()">
+                        <div class="page-toolbar">
+                            <button class="btn btn-sm btn-danger" onclick="deleteCurrentPage()">Delete Page</button>
+                            <span class="page-meta" id="pageMeta"></span>
+                        </div>
+                        <textarea class="page-content-editor" id="pageContentEditor" placeholder="Paste SQL queries, notes, or anything you want to remember..." oninput="onPageContentChange()"></textarea>
                     </div>
-                    <div class="saved-table-wrap" id="savedQueryList"></div>
                 </div>
             </div>
             
@@ -344,27 +376,7 @@
                 </div>
             </div>
             
-            <!-- Import Data View -->
-            <div id="importView" style="display:none;">
-                <div style="flex:1; overflow-y:auto; padding:16px;">
-                    <div class="upload-zone" id="uploadZone" style="margin-bottom:16px;">
-                        <h2>Drop Excel files here or click to browse</h2>
-                        <p>Supports .xlsx files &bull; Load multiple months to compare</p>
-                        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv">
-                    </div>
-                    <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
-                        <a class="data-files-link" href="https://empyreansolutions.sharepoint.com/Shared%20Documents/Forms/AllItems.aspx?id=%2FShared%20Documents%2FExplorer%2FDemo%20System%2FClaude%20Fake%20Data%2FData%20Set&viewid=bf15d09f%2D66f3%2D4494%2D81f3%2D0cbf31c9069b" target="_blank" rel="noopener">Download Data Files from SharePoint</a>
-                        <button class="btn btn-danger" id="deleteAllBtn" style="display:none;" onclick="deleteAllData()">Delete All Data</button>
-                        <span id="storageInfo" style="font-size:0.78rem; color:var(--gray-500); margin-left:auto;"></span>
-                    </div>
-                    <h3 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--gray-500); margin-bottom:8px;">Loaded Files</h3>
-                    <div class="file-badges" id="fileBadges" style="padding:0; margin-bottom:16px;">
-                        <span style="font-size:0.8rem; color:var(--gray-400);">No files loaded yet</span>
-                    </div>
-                    <h3 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--gray-500); margin-bottom:8px;">Tables</h3>
-                    <div id="importTableSummary" style="font-size:0.8rem; color:var(--gray-400);">No tables loaded</div>
-                </div>
-            </div>
+            <!-- Import Data View removed - now in sidebar -->
         </div>
         
         <div class="copy-toast" id="copyToast">Copied to clipboard!</div>
@@ -495,26 +507,7 @@
     }
 
     function renderImportSummary() {
-        const container = document.getElementById('importTableSummary');
-        const tableNames = Object.keys(state.tables).sort();
-        if (tableNames.length === 0) {
-            container.innerHTML = '<span style="color:var(--gray-400);">No tables loaded</span>';
-            return;
-        }
-        container.innerHTML = '<div style="border:1px solid var(--gray-200); border-radius:8px; overflow:hidden; box-shadow:var(--shadow);">' +
-            '<table style="width:100%; border-collapse:collapse; font-size:0.8rem;">' +
-            '<thead><tr><th style="background:var(--navy); color:white; padding:6px 12px; text-align:left; border:1px solid rgba(255,255,255,.15);">Table</th>' +
-            '<th style="background:var(--navy); color:white; padding:6px 12px; text-align:right; border:1px solid rgba(255,255,255,.15);">Rows</th>' +
-            '<th style="background:var(--navy); color:white; padding:6px 12px; text-align:right; border:1px solid rgba(255,255,255,.15);">Columns</th>' +
-            '<th style="background:var(--navy); color:white; padding:6px 12px; text-align:left; border:1px solid rgba(255,255,255,.15);">Source File</th></tr></thead><tbody>' +
-            tableNames.map(t => {
-                const info = state.tables[t];
-                return `<tr><td style="padding:5px 12px; border:1px solid var(--gray-200); font-weight:600; color:var(--navy);">${t}</td>` +
-                    `<td style="padding:5px 12px; border:1px solid var(--gray-200); text-align:right;">${info.rowCount.toLocaleString()}</td>` +
-                    `<td style="padding:5px 12px; border:1px solid var(--gray-200); text-align:right;">${info.columns.length}</td>` +
-                    `<td style="padding:5px 12px; border:1px solid var(--gray-200); color:var(--gray-500); font-size:0.75rem;">${info.sourceFile || ''}</td></tr>`;
-            }).join('') +
-            '</tbody></table></div>';
+        // no-op: import summary is now shown via sidebar table list
     }
 
     async function deleteAllData() {
@@ -653,24 +646,22 @@
     function refreshUI() {
         document.getElementById('querySection').style.display = '';
 
-        // File badges in import view
+        // File badges in sidebar import section
         const badges = document.getElementById('fileBadges');
         if (state.files.length > 0) {
             badges.innerHTML = state.files.map((f, i) => 
                 `<span class="file-badge">${f}<span class="remove-file" onclick="removeFile(${i})">&times;</span></span>`
             ).join('');
         } else {
-            badges.innerHTML = '<span style="font-size:0.8rem; color:var(--gray-400);">No files loaded yet</span>';
+            badges.innerHTML = '';
         }
-
-        renderImportSummary();
 
         // Sidebar table list
         const tableList = document.getElementById('table-list');
         const tableNames = Object.keys(state.tables).sort();
         if (tableNames.length === 0) {
             tableList.className = 'empty-state';
-            tableList.style.cssText = 'padding:24px;font-size:0.8rem;';
+            tableList.style.cssText = 'padding:12px 8px;font-size:0.78rem;';
             tableList.innerHTML = 'No data loaded yet';
             return;
         }
@@ -987,7 +978,10 @@
     // --- View switching ---
     function switchView(view) {
         document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
-        ['queryView','explorerView','dictionaryView','savedView','importView'].forEach(id => document.getElementById(id).style.display = 'none');
+        ['queryView','pagesView','explorerView','dictionaryView'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
         if (view !== 'query' && window.location.hash) {
             history.replaceState(null, '', window.location.pathname + window.location.search);
         }
@@ -995,24 +989,18 @@
         if (view === 'query') {
             document.getElementById('queryView').style.display = '';
             tabs[0].classList.add('active');
+        } else if (view === 'pages') {
+            document.getElementById('pagesView').style.display = '';
+            tabs[1].classList.add('active');
         } else if (view === 'explorer') {
             document.getElementById('explorerView').style.display = '';
-            tabs[1].classList.add('active');
+            tabs[2].classList.add('active');
             populateExplorerDropdown();
         } else if (view === 'dictionary') {
             document.getElementById('dictionaryView').style.display = '';
-            tabs[2].classList.add('active');
+            tabs[3].classList.add('active');
             populateDictDropdown();
             loadDictionary();
-        } else if (view === 'saved') {
-            document.getElementById('savedView').style.display = '';
-            tabs[3].classList.add('active');
-            populateSavedFilters();
-            renderSavedQueries();
-        } else if (view === 'import') {
-            document.getElementById('importView').style.display = '';
-            tabs[4].classList.add('active');
-            renderImportSummary();
         }
     }
 
@@ -1519,6 +1507,200 @@
 
     function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+    // --- Pages Feature ---
+    let savedPages = [];
+    let selectedPageId = null;
+    let pageSortMode = 'recent'; // 'recent' or 'az'
+    let pageAutoSaveTimer = null;
+
+    async function loadPages() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.get('savedPages');
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => resolve([]);
+        });
+    }
+
+    async function persistPages(pages) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            store.put(pages, 'savedPages');
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    async function initPages() {
+        savedPages = await loadPages();
+        renderPageList();
+    }
+
+    function renderPageList() {
+        const container = document.getElementById('page-list');
+        if (savedPages.length === 0) {
+            container.innerHTML = '<div style="padding:8px; font-size:0.78rem; color:var(--gray-400);">No pages yet</div>';
+            return;
+        }
+
+        let sorted = [...savedPages];
+        if (pageSortMode === 'az') {
+            sorted.sort((a, b) => a.name.localeCompare(b.name));
+        } else {
+            sorted.sort((a, b) => new Date(b.updated || b.created) - new Date(a.updated || a.created));
+        }
+
+        container.innerHTML = sorted.map(p => `
+            <div class="page-item${p.id === selectedPageId ? ' active' : ''}" onclick="selectPage(${p.id})" title="${escHtml(p.name)}">
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(p.name)}</span>
+                <span class="page-delete" onclick="event.stopPropagation();deletePage(${p.id})" title="Delete page">&times;</span>
+            </div>
+        `).join('');
+    }
+
+    async function createNewPage() {
+        const page = {
+            id: Date.now(),
+            name: 'Untitled Page',
+            content: '',
+            created: new Date().toISOString(),
+            updated: new Date().toISOString()
+        };
+        savedPages.push(page);
+        await persistPages(savedPages);
+        selectedPageId = page.id;
+        renderPageList();
+        switchView('pages');
+        showPageEditor();
+        const titleInput = document.getElementById('pageTitleInput');
+        titleInput.select();
+        titleInput.focus();
+    }
+
+    function selectPage(id) {
+        selectedPageId = id;
+        renderPageList();
+        switchView('pages');
+        showPageEditor();
+    }
+
+    function showPageEditor() {
+        const page = savedPages.find(p => p.id === selectedPageId);
+        const emptyState = document.getElementById('pageEmptyState');
+        const editor = document.getElementById('pageEditor');
+        if (!page) {
+            emptyState.style.display = '';
+            editor.style.display = 'none';
+            return;
+        }
+        emptyState.style.display = 'none';
+        editor.style.display = 'flex';
+        document.getElementById('pageTitleInput').value = page.name;
+        document.getElementById('pageContentEditor').value = page.content;
+        const updated = page.updated ? new Date(page.updated) : new Date(page.created);
+        document.getElementById('pageMeta').textContent = 'Last saved: ' + updated.toLocaleString();
+    }
+
+    function onPageTitleChange() {
+        schedulePageSave();
+    }
+
+    function onPageContentChange() {
+        schedulePageSave();
+    }
+
+    function schedulePageSave() {
+        clearTimeout(pageAutoSaveTimer);
+        pageAutoSaveTimer = setTimeout(async () => {
+            const page = savedPages.find(p => p.id === selectedPageId);
+            if (!page) return;
+            page.name = document.getElementById('pageTitleInput').value.trim() || 'Untitled Page';
+            page.content = document.getElementById('pageContentEditor').value;
+            page.updated = new Date().toISOString();
+            await persistPages(savedPages);
+            renderPageList();
+            document.getElementById('pageMeta').textContent = 'Last saved: ' + new Date(page.updated).toLocaleString();
+        }, 500);
+    }
+
+    async function deleteCurrentPage() {
+        const page = savedPages.find(p => p.id === selectedPageId);
+        if (!page) return;
+        if (!confirm(`Delete page "${page.name}"?`)) return;
+        savedPages = savedPages.filter(p => p.id !== selectedPageId);
+        await persistPages(savedPages);
+        selectedPageId = null;
+        renderPageList();
+        showPageEditor();
+        showToast(`Deleted: "${page.name}"`);
+    }
+
+    async function deletePage(id) {
+        const page = savedPages.find(p => p.id === id);
+        if (!page) return;
+        if (!confirm(`Delete page "${page.name}"?`)) return;
+        savedPages = savedPages.filter(p => p.id !== id);
+        await persistPages(savedPages);
+        if (selectedPageId === id) {
+            selectedPageId = null;
+            showPageEditor();
+        }
+        renderPageList();
+        showToast(`Deleted: "${page.name}"`);
+    }
+
+    function togglePageSort() {
+        pageSortMode = pageSortMode === 'az' ? 'recent' : 'az';
+        const btn = document.getElementById('pageSortBtn');
+        btn.textContent = pageSortMode === 'az' ? 'A-Z' : 'Recent';
+        renderPageList();
+    }
+
+    function toggleImportSection() {
+        const body = document.getElementById('importSectionBody');
+        const chevron = document.getElementById('importChevron');
+        body.classList.toggle('open');
+        chevron.classList.toggle('open');
+    }
+
+    function copyToPage() {
+        const sql = document.getElementById('sqlInput').value.trim();
+        if (!sql) { showToast('No SQL in the editor'); return; }
+        if (selectedPageId) {
+            const page = savedPages.find(p => p.id === selectedPageId);
+            if (page) {
+                page.content += (page.content ? '\n\n' : '') + sql;
+                page.updated = new Date().toISOString();
+                persistPages(savedPages);
+                renderPageList();
+                if (document.getElementById('pagesView').style.display !== 'none') {
+                    showPageEditor();
+                }
+                showToast(`Appended to "${page.name}"`);
+                return;
+            }
+        }
+        // No page selected — create a new one
+        const page = {
+            id: Date.now(),
+            name: 'From SQL Editor',
+            content: sql,
+            created: new Date().toISOString(),
+            updated: new Date().toISOString()
+        };
+        savedPages.push(page);
+        selectedPageId = page.id;
+        persistPages(savedPages);
+        renderPageList();
+        switchView('pages');
+        showPageEditor();
+        showToast('Created new page with query');
+    }
+
     // --- Data Dictionary ---
     const dictState = { fieldData: [], selectedVals: {} };
 
@@ -1720,8 +1902,13 @@
 
     // Restore data from browser storage on page load, then handle deep-links
     restoreSession().then(() => {
+        initPages();
         if (Object.keys(state.tables).length === 0 && !window.location.hash) {
-            switchView('import');
+            // Auto-expand import section in sidebar when no data loaded
+            const body = document.getElementById('importSectionBody');
+            const chevron = document.getElementById('importChevron');
+            body.classList.add('open');
+            chevron.classList.add('open');
         }
         handleDeepLink();
     });
