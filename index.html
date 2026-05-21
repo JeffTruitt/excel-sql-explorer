@@ -521,17 +521,13 @@
             state.files = saved.files || [];
             for (const [name, { meta, rows }] of Object.entries(saved.tables)) {
                 if (!rows || rows.length === 0) continue;
-                // Normalize any ISO date strings to YYYY-MM-DD format
+                // Normalize date columns to YYYY-MM-DD on restore
                 const dateCols = meta.types.map((t, i) => t === 'date' ? meta.columns[i] : null).filter(Boolean);
                 if (dateCols.length > 0) {
                     for (const row of rows) {
                         for (const col of dateCols) {
-                            if (row[col] && typeof row[col] === 'string') {
-                                const d = new Date(row[col]);
-                                if (!isNaN(d)) {
-                                    row[col] = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-                                }
-                            }
+                            const converted = toYMD(row[col]);
+                            if (converted) row[col] = converted;
                         }
                     }
                 }
@@ -940,20 +936,42 @@
         });
     }
 
+    function toYMD(val) {
+        if (val instanceof Date) {
+            return val.getFullYear() + '-' + String(val.getMonth()+1).padStart(2,'0') + '-' + String(val.getDate()).padStart(2,'0');
+        }
+        if (typeof val === 'string') {
+            // Already YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+            // ISO datetime string
+            const iso = val.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+            if (iso) return iso[1] + '-' + iso[2] + '-' + iso[3];
+            // M/D/YYYY or MM/DD/YYYY
+            const us = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (us) return us[3] + '-' + us[1].padStart(2,'0') + '-' + us[2].padStart(2,'0');
+        }
+        return null;
+    }
+
     function normalizeDates(rows) {
         if (!rows || rows.length === 0) return rows;
         const cols = Object.keys(rows[0]);
         const dateCols = cols.filter(c => {
-            const v = rows.find(r => r[c] != null)?.[c];
-            return v instanceof Date;
+            for (const r of rows) {
+                const v = r[c];
+                if (v == null) continue;
+                if (v instanceof Date) return true;
+                if (typeof v === 'string' && /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.test(v)) return true;
+                if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return true;
+                return false;
+            }
+            return false;
         });
         if (dateCols.length === 0) return rows;
         for (const row of rows) {
             for (const col of dateCols) {
-                if (row[col] instanceof Date) {
-                    const d = row[col];
-                    row[col] = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-                }
+                const converted = toYMD(row[col]);
+                if (converted) row[col] = converted;
             }
         }
         return rows;
