@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel SQL Explorer</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alasql@4.4.0/dist/alasql.min.js"></script>
+    <style>
+        :root { --navy: #1a2f45; --navy-dark: #0f1d2d; --blue: #2563eb; --blue-light: #dbeafe; --blue-mid: #93c5fd; --teal: #0d9488; --green: #16a34a; --green-light: #dcfce7; --red: #dc2626; --red-light: #fee2e2; --amber: #d97706; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-500: #6b7280; --gray-700: #374151; --gray-900: #111827; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,.1); --shadow-lg: 0 10px 25px rgba(0,0,0,.08); }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--gray-50); color: var(--gray-900); min-height: 100vh; line-height: 1.6; }
+        
+        .app-header { background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 100%); border-bottom: 1px solid var(--gray-200); padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+        .app-header h1 { font-size: 1.25rem; font-weight: 700; color: white; letter-spacing: -.3px; }
+        .app-header h1 span { color: var(--blue-mid); }
+        .app-header .subtitle { font-size: 0.85rem; color: rgba(255,255,255,.6); }
+        
+        .layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 60px); }
+        
+        /* Sidebar */
+        .sidebar { background: white; border-right: 1px solid var(--gray-200); overflow-y: auto; padding: 12px; min-height: 0; text-align: left; }
+        .sidebar h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); margin: 12px 0 6px; padding: 0 8px; }
+        #table-list { text-align: left; }
+        .table-item { padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; transition: background 0.15s; display: flex; justify-content: space-between; align-items: center; color: var(--gray-900); text-align: left; }
+        .table-item:hover { background: var(--gray-100); }
+        .table-item.active { background: var(--blue-light); color: var(--blue); }
+        .table-item .row-count { font-size: 0.7rem; color: var(--gray-500); background: var(--gray-100); padding: 2px 6px; border-radius: 10px; flex-shrink: 0; margin-left: 6px; }
+        .column-list { padding: 2px 0 8px 20px; font-size: 0.75rem; color: var(--gray-700); text-align: left; }
+        .column-list .col-item { padding: 2px 8px; border-radius: 3px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+        .column-list .col-item:hover { background: var(--gray-100); color: var(--gray-900); }
+        .col-type { font-size: 0.65rem; color: var(--gray-500); font-style: italic; flex-shrink: 0; margin-left: 6px; }
+        
+        /* Main area */
+        .main { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+        
+        /* Upload zone */
+        .upload-zone { margin: 16px; padding: 32px; border: 2px dashed var(--gray-300); border-radius: var(--radius); text-align: center; transition: all 0.2s; cursor: pointer; background: white; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: var(--blue); background: var(--blue-light); }
+        .upload-zone h2 { font-size: 1.1rem; color: var(--navy); margin-bottom: 8px; font-weight: 700; }
+        .upload-zone p { font-size: 0.85rem; color: var(--gray-500); }
+        .upload-zone input { display: none; }
+        .upload-zone.minimized { padding: 12px; margin: 8px 16px; }
+        .upload-zone.minimized h2 { font-size: 0.85rem; margin: 0; }
+        .upload-zone.minimized p { display: none; }
+        
+        /* File badges */
+        .file-badges { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 8px; }
+        .file-badge { font-size: 0.75rem; background: var(--blue-light); color: var(--blue); padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 6px; font-weight: 500; }
+        .file-badge .remove-file { cursor: pointer; opacity: 0.6; }
+        .file-badge .remove-file:hover { opacity: 1; }
+        
+        /* Query area */
+        .query-section { padding: 0 16px; flex-shrink: 0; }
+        .query-toolbar { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
+        .btn { padding: 6px 14px; border-radius: 6px; border: none; font-size: 0.8rem; cursor: pointer; font-weight: 500; transition: all 0.15s; }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-primary:hover { background: #3b82f6; }
+        .btn-secondary { background: var(--gray-200); color: var(--gray-700); }
+        .btn-secondary:hover { background: var(--gray-300); }
+        .btn-sm { padding: 4px 10px; font-size: 0.72rem; }
+        .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid var(--red); }
+        .btn-danger:hover { background: var(--red); color: white; }
+        
+        .query-editor { position: relative; }
+        .query-editor textarea { width: 100%; height: 120px; background: white; border: 1px solid var(--gray-300); border-radius: 8px; padding: 12px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.85rem; color: var(--gray-900); resize: vertical; outline: none; transition: border-color 0.2s; box-shadow: var(--shadow); }
+        .query-editor textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+        
+        /* Templates */
+        .templates { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0; }
+        .template-chip { font-size: 0.72rem; padding: 4px 10px; background: white; border: 1px solid var(--gray-200); border-radius: 14px; cursor: pointer; color: var(--gray-500); transition: all 0.15s; }
+        .template-chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+        
+        /* Results */
+        .results-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 12px 16px; }
+        .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .results-header .info { font-size: 0.8rem; color: var(--gray-500); }
+        .results-table-wrap { flex: 1; overflow: auto; border: 1px solid var(--gray-200); border-radius: var(--radius); box-shadow: var(--shadow); background: white; }
+        table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        thead { position: sticky; top: 0; z-index: 1; }
+        th { background: var(--navy); padding: 8px 12px; text-align: left; font-weight: 600; color: white; border: 1px solid rgba(255,255,255,.15); white-space: nowrap; }
+        th.num { text-align: right; }
+        td { padding: 6px 12px; border: 1px solid var(--gray-200); white-space: nowrap; color: var(--gray-700); }
+        tr:hover td { background: var(--blue-light); }
+        td.num { text-align: right; font-family: 'Cascadia Code', monospace; }
+        
+        .error-msg { background: var(--red-light); border: 1px solid var(--red); color: #991b1b; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-top: 8px; }
+        .success-msg { background: var(--green-light); border: 1px solid var(--green); color: #166534; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; }
+        
+        /* Status bar */
+        .status-bar { background: white; border-top: 1px solid var(--gray-200); padding: 6px 16px; font-size: 0.75rem; color: var(--gray-500); display: flex; justify-content: space-between; }
+        
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--gray-300); }
+        .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4; }
+        
+        /* Tabs for main view */
+        .view-tabs { display: flex; gap: 0; padding: 0 16px; border-bottom: 1px solid var(--gray-200); background: white; }
+        .view-tab { padding: 10px 18px; font-size: 0.82rem; font-weight: 500; color: var(--gray-500); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+        .view-tab:hover { color: var(--gray-900); }
+        .view-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+        
+        /* Data Explorer panel */
+        .data-explorer { flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 12px 16px; }
+        .explorer-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+        .explorer-controls select { background: white; border: 1px solid var(--gray-300); color: var(--gray-900); padding: 6px 10px; border-radius: 6px; font-size: 0.82rem; outline: none; }
+        .explorer-controls select:focus { border-color: var(--blue); }
+        
+        .preview-table-wrap { flex: 1; overflow: auto; border: 1px solid var(--gray-200); border-radius: var(--radius); margin-bottom: 12px; box-shadow: var(--shadow); background: white; }
+        .preview-table-wrap table th { cursor: pointer; position: relative; user-select: none; }
+        .preview-table-wrap table th:hover { background: var(--gray-700); }
+        .preview-table-wrap table th.selected-col { background: var(--blue); color: white; }
+        
+        /* Distinct values panel */
+        .distinct-panel { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); max-height: 240px; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+        .distinct-header { padding: 8px 12px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .distinct-header .title { font-size: 0.8rem; font-weight: 600; color: var(--navy); }
+        .distinct-header .actions { display: flex; gap: 6px; }
+        .distinct-body { overflow-y: auto; padding: 8px; flex: 1; }
+        .distinct-values { display: flex; flex-wrap: wrap; gap: 4px; }
+        .distinct-val { font-size: 0.72rem; padding: 3px 8px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 4px; cursor: pointer; color: var(--gray-700); transition: all 0.12s; }
+        .distinct-val:hover { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+        .distinct-val.selected { background: var(--blue); border-color: var(--blue); color: white; }
+        .distinct-stats { font-size: 0.72rem; color: var(--gray-500); padding: 4px 0; }
+        
+        .copy-toast { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); background: var(--navy); color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 100; box-shadow: var(--shadow-lg); }
+        .copy-toast.show { opacity: 1; }
+        
+        /* Loading overlay */
+        .loading-overlay { position: fixed; inset: 0; background: rgba(15,29,45,.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+        .loading-overlay.active { opacity: 1; pointer-events: all; }
+        .loading-card { background: white; border-radius: var(--radius); padding: 32px 40px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .loading-spinner { width: 40px; height: 40px; border: 3px solid var(--gray-200); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 0.9rem; font-weight: 600; color: var(--navy); }
+        .loading-detail { font-size: 0.78rem; color: var(--gray-500); }
+        
+        /* Data Dictionary */
+        .dict-panel { flex: 1; overflow-y: auto; padding: 12px 16px; }
+        .dict-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+        .dict-controls select { background: white; border: 1px solid var(--gray-300); color: var(--gray-900); padding: 6px 10px; border-radius: 6px; font-size: 0.82rem; outline: none; }
+        .dict-controls select:focus { border-color: var(--blue); }
+        .dict-search { background: white; border: 1px solid var(--gray-300); color: var(--gray-900); padding: 6px 10px; border-radius: 6px; font-size: 0.82rem; outline: none; width: 200px; }
+        .dict-search:focus { border-color: var(--blue); }
+        .dict-field { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); margin-bottom: 6px; box-shadow: var(--shadow); overflow: hidden; }
+        .dict-field-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; transition: background 0.12s; }
+        .dict-field-header:hover { background: var(--gray-50); }
+        .dict-field-name { font-weight: 600; font-size: 0.85rem; color: var(--navy); flex: 1; }
+        .dict-field-meta { display: flex; gap: 12px; align-items: center; }
+        .dict-badge { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+        .dict-badge.type-number { background: #dbeafe; color: #1d4ed8; }
+        .dict-badge.type-string { background: #fef3c7; color: #92400e; }
+        .dict-badge.type-date { background: #dcfce7; color: #166534; }
+        .dict-unique { font-size: 0.75rem; color: var(--gray-500); }
+        .dict-chevron { font-size: 0.7rem; color: var(--gray-400); transition: transform 0.2s; }
+        .dict-chevron.open { transform: rotate(90deg); }
+        .dict-field-body { display: none; border-top: 1px solid var(--gray-100); padding: 10px 14px; background: var(--gray-50); }
+        .dict-field-body.open { display: block; }
+        .dict-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; font-size: 0.75rem; color: var(--gray-500); }
+        .dict-summary span { display: flex; gap: 4px; align-items: center; }
+        .dict-summary strong { color: var(--gray-700); }
+        .dict-vals-wrap { display: flex; flex-wrap: wrap; gap: 4px; max-height: 180px; overflow-y: auto; }
+        .dict-val-chip { font-size: 0.72rem; padding: 3px 8px; background: white; border: 1px solid var(--gray-200); border-radius: 4px; cursor: pointer; color: var(--gray-700); transition: all 0.12s; }
+        .dict-val-chip:hover { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+        .dict-val-chip.selected { background: var(--blue); border-color: var(--blue); color: white; }
+        .dict-actions { display: flex; gap: 6px; margin-top: 8px; }
+        
+        /* Saved Queries */
+        .saved-panel { flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 12px 16px; min-height: 0; }
+        .saved-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; flex-shrink: 0; }
+        .saved-controls input, .saved-controls select { background: white; border: 1px solid var(--gray-300); color: var(--gray-900); padding: 6px 10px; border-radius: 6px; font-size: 0.82rem; outline: none; }
+        .saved-controls input:focus, .saved-controls select:focus { border-color: var(--blue); }
+        .save-form { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; box-shadow: var(--shadow); flex-shrink: 0; }
+        .save-form-title { font-size: 0.85rem; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+        .save-form-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
+        .save-form-row label { font-size: 0.75rem; color: var(--gray-500); width: 55px; flex-shrink: 0; }
+        .save-form-row input { flex: 1; min-width: 100px; background: white; border: 1px solid var(--gray-300); color: var(--gray-900); padding: 6px 10px; border-radius: 6px; font-size: 0.82rem; outline: none; }
+        .save-form-row input:focus { border-color: var(--blue); }
+
+        .saved-table-wrap { flex: 1; overflow: auto; border: 1px solid var(--gray-200); border-radius: var(--radius); box-shadow: var(--shadow); background: white; }
+        .saved-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .saved-table thead { position: sticky; top: 0; z-index: 1; }
+        .saved-table th { background: var(--navy); padding: 8px 12px; text-align: left; font-weight: 600; color: white; border: 1px solid rgba(255,255,255,.15); white-space: nowrap; cursor: pointer; user-select: none; }
+        .saved-table th:hover { background: var(--gray-700); }
+        .saved-table th .sort-arrow { font-size: 0.65rem; margin-left: 4px; opacity: 0.5; }
+        .saved-table th .sort-arrow.active { opacity: 1; }
+        .saved-table td { padding: 6px 12px; border: 1px solid var(--gray-200); color: var(--gray-700); }
+        .saved-table tr.sq-row { cursor: pointer; }
+        .saved-table tr.sq-row:hover td { background: var(--blue-light); }
+        .saved-table tr.sq-row.active td { background: var(--blue-light); border-bottom-color: var(--blue-light); }
+        .saved-table td.sq-name { font-weight: 600; color: var(--navy); white-space: nowrap; }
+        .saved-table td.sq-page { white-space: nowrap; }
+        .saved-table td.sq-section { white-space: nowrap; }
+        .saved-table td.sq-tab { white-space: nowrap; }
+        .saved-table td.sq-actions { white-space: nowrap; }
+
+        .sq-detail-row td { background: var(--gray-50); padding: 0; }
+        .sq-detail-row.hidden { display: none; }
+        .sq-detail-inner { padding: 12px 16px; }
+        .sq-detail-inner pre { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.78rem; color: var(--gray-700); white-space: pre-wrap; word-break: break-word; margin-bottom: 10px; background: white; padding: 10px; border-radius: 6px; border: 1px solid var(--gray-200); }
+        .sq-detail-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+        .sq-edit-form { background: var(--blue-light); border: 1px solid var(--gray-200); border-radius: 8px; padding: 12px; margin-top: 10px; display: none; }
+        .sq-edit-form.open { display: block; }
+        .sq-edit-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; }
+        .sq-edit-row label { font-size: 0.72rem; color: var(--gray-500); width: 50px; flex-shrink: 0; }
+        .sq-edit-row input { flex: 1; min-width: 80px; background: white; border: 1px solid var(--gray-300); color: var(--gray-900); padding: 5px 8px; border-radius: 6px; font-size: 0.8rem; outline: none; }
+        .sq-edit-row input:focus { border-color: var(--blue); }
+        .sq-edit-actions { display: flex; gap: 6px; margin-top: 6px; }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <h1>Excel <span>SQL Explorer</span></h1>
+        <span class="subtitle">Upload Excel files and query them with SQL</span>
+        <span id="storageInfo" style="font-size:0.72rem; color:rgba(255,255,255,.5); margin-left:auto;"></span>
+        <button class="btn btn-danger" id="deleteAllBtn" style="display:none;" onclick="deleteAllData()">Delete All Data</button>
+    </div>
+    
+    <div class="layout">
+        <div class="sidebar" id="sidebar">
+            <h3>Loaded Tables</h3>
+            <div id="table-list" class="empty-state" style="padding: 24px; font-size: 0.8rem;">
+                No data loaded yet
+            </div>
+        </div>
+        
+        <div class="main">
+            <div class="upload-zone" id="uploadZone">
+                <h2>Drop Excel files here or click to browse</h2>
+                <p>Supports .xlsx files &bull; Load multiple months to compare</p>
+                <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv">
+            </div>
+            
+            <div class="file-badges" id="fileBadges"></div>
+            
+            <div class="view-tabs" id="viewTabs" style="display:none;">
+                <div class="view-tab active" onclick="switchView('query')">SQL Query</div>
+                <div class="view-tab" onclick="switchView('explorer')">Data Explorer</div>
+                <div class="view-tab" onclick="switchView('dictionary')">Data Dictionary</div>
+                <div class="view-tab" onclick="switchView('saved')">Saved Queries</div>
+            </div>
+            
+            <!-- SQL Query View -->
+            <div id="queryView">
+                <div class="query-section" id="querySection" style="display:none;">
+                    <div class="templates" id="templates"></div>
+                    <div class="query-editor">
+                        <textarea id="sqlInput" placeholder="SELECT * FROM NMD LIMIT 10" spellcheck="false"></textarea>
+                    </div>
+                    <div class="query-toolbar">
+                        <button class="btn btn-primary" onclick="runQuery()">Run Query (Ctrl+Enter)</button>
+                        <button class="btn btn-secondary" onclick="clearResults()">Clear</button>
+                        <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+                        <button class="btn btn-secondary" onclick="goToSaveQuery()">Save Query</button>
+                        <span id="queryTime" style="font-size:0.75rem; color:#64748b; margin-left:auto;"></span>
+                    </div>
+                </div>
+                
+                <div class="results-section" id="resultsSection">
+                    <div class="results-header">
+                        <span class="info" id="resultInfo"></span>
+                    </div>
+                    <div class="results-table-wrap" id="resultsWrap">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg>
+                            <span>Query results will appear here</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Saved Queries View -->
+            <div id="savedView" style="display:none;">
+                <div class="saved-panel">
+                    <div class="save-form" id="saveForm">
+                        <div class="save-form-title">Save Current Query</div>
+                        <div class="save-form-row">
+                            <label>Name *</label>
+                            <input type="text" id="saveQueryName" placeholder="e.g. Loan CurrBook by Product">
+                        </div>
+                        <div class="save-form-row">
+                            <label>Page</label>
+                            <input type="text" id="saveQueryPage" placeholder="e.g. Loan Detail">
+                            <label>Section</label>
+                            <input type="text" id="saveQuerySection" placeholder="e.g. Portfolio">
+                            <label>Tab</label>
+                            <input type="text" id="saveQueryTab" placeholder="e.g. Summary">
+                        </div>
+                        <div class="save-form-row">
+                            <button class="btn btn-primary btn-sm" onclick="saveCurrentQuery()">Save Query</button>
+                        </div>
+                    </div>
+                    <div class="saved-controls">
+                        <input type="text" id="savedSearch" placeholder="Search saved queries..." oninput="renderSavedQueries()" style="width:200px;">
+                        <select id="savedFilterPage" onchange="renderSavedQueries()">
+                            <option value="">All Pages</option>
+                        </select>
+                        <select id="savedFilterSection" onchange="renderSavedQueries()">
+                            <option value="">All Sections</option>
+                        </select>
+                        <select id="savedFilterTab" onchange="renderSavedQueries()">
+                            <option value="">All Tabs</option>
+                        </select>
+                        <span id="savedInfo" style="font-size:0.75rem;color:var(--gray-500);margin-left:auto;"></span>
+                    </div>
+                    <div class="saved-table-wrap" id="savedQueryList"></div>
+                </div>
+            </div>
+            
+            <!-- Data Dictionary View -->
+            <div id="dictionaryView" style="display:none;">
+                <div class="dict-panel">
+                    <div class="dict-controls">
+                        <select id="dictTable" onchange="loadDictionary()">
+                            <option value="">-- All tables --</option>
+                        </select>
+                        <input type="text" class="dict-search" id="dictSearch" placeholder="Filter fields..." oninput="filterDictionary()">
+                        <span id="dictInfo" style="font-size:0.75rem; color:var(--gray-500); margin-left:auto;"></span>
+                    </div>
+                    <div id="dictFieldList"></div>
+                </div>
+            </div>
+            
+            <!-- Data Explorer View -->
+            <div id="explorerView" style="display:none;">
+                <div class="data-explorer">
+                    <div class="explorer-controls">
+                        <select id="explorerTable" onchange="loadExplorerTable()">
+                            <option value="">-- Select a table --</option>
+                        </select>
+                        <span id="explorerInfo" style="font-size:0.75rem; color:#64748b;"></span>
+                        <button class="btn btn-sm btn-secondary" onclick="explorerShowAll()" style="margin-left:auto;">Show All Rows</button>
+                    </div>
+                    <div class="preview-table-wrap" id="explorerPreview">
+                        <div class="empty-state" style="padding:40px;">
+                            <span>Select a table to preview its data</span>
+                        </div>
+                    </div>
+                    <div class="distinct-panel" id="distinctPanel" style="display:none;">
+                        <div class="distinct-header">
+                            <span class="title" id="distinctTitle">Distinct Values</span>
+                            <div class="actions">
+                                <button class="btn btn-sm btn-secondary" onclick="copySelectedAsIN()">Copy as IN (...)</button>
+                                <button class="btn btn-sm btn-secondary" onclick="copyAllDistinct()">Copy All</button>
+                                <button class="btn btn-sm btn-secondary" onclick="insertINtoQuery()">Insert into SQL</button>
+                            </div>
+                        </div>
+                        <div class="distinct-stats" id="distinctStats" style="padding:4px 12px;"></div>
+                        <div class="distinct-body">
+                            <div class="distinct-values" id="distinctValues"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="copy-toast" id="copyToast">Copied to clipboard!</div>
+    
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-card">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loadingText">Loading files...</div>
+            <div class="loading-detail" id="loadingDetail"></div>
+        </div>
+    </div>
+    </div>
+    
+    <div class="status-bar">
+        <span id="statusLeft">Ready</span>
+        <span id="statusRight"></span>
+    </div>
+
+    <script>
+    // Custom AlaSQL function: extracts 'YYYY-MM' from Date objects or date strings
+    function yearmonthImpl(val) {
+        if (val == null) return null;
+        if (val instanceof Date) {
+            const y = val.getFullYear();
+            const m = String(val.getMonth() + 1).padStart(2, '0');
+            return y + '-' + m;
+        }
+        const s = String(val);
+        const isoMatch = s.match(/^(\d{4})-(\d{2})/);
+        if (isoMatch) return isoMatch[1] + '-' + isoMatch[2];
+        const usMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (usMatch) return usMatch[3] + '-' + usMatch[1].padStart(2, '0');
+        return s.slice(0, 7);
+    }
+    alasql.fn.YEARMONTH = yearmonthImpl;
+    alasql.fn.yearmonth = yearmonthImpl;
+    alasql.fn.YearMonth = yearmonthImpl;
+
+    // --- IndexedDB persistence layer ---
+    const DB_NAME = 'ExcelSqlExplorer';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'tableData';
+
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function saveToStorage() {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+
+        const payload = { files: state.files, tables: {} };
+        for (const [name, meta] of Object.entries(state.tables)) {
+            const rows = alasql(`SELECT * FROM ${name}`);
+            payload.tables[name] = { meta, rows };
+        }
+        store.put(payload, 'appData');
+        return new Promise((resolve, reject) => {
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    async function loadFromStorage() {
+        try {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.get('appData');
+            return new Promise((resolve) => {
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => resolve(null);
+            });
+        } catch { return null; }
+    }
+
+    async function clearStorage() {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).delete('appData');
+        return new Promise((resolve) => { tx.oncomplete = resolve; });
+    }
+
+    async function restoreSession() {
+        const saved = await loadFromStorage();
+        if (!saved || !saved.tables || Object.keys(saved.tables).length === 0) return;
+
+        const tableCount = Object.keys(saved.tables).length;
+        showLoading('Restoring session...', `${tableCount} table${tableCount > 1 ? 's' : ''} from browser storage`);
+        await new Promise(r => setTimeout(r, 0));
+
+        try {
+            state.files = saved.files || [];
+            for (const [name, { meta, rows }] of Object.entries(saved.tables)) {
+                if (!rows || rows.length === 0) continue;
+                alasql(`CREATE TABLE ${name}`);
+                alasql.tables[name].data = rows;
+                state.tables[name] = meta;
+            }
+            refreshUI();
+            updateStorageInfo();
+            setStatus(`Restored ${tableCount} tables from browser storage`);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function updateStorageInfo() {
+        if (state.files.length > 0) {
+            const totalRows = Object.values(state.tables).reduce((s, t) => s + t.rowCount, 0);
+            document.getElementById('storageInfo').textContent = `Saved in browser (${totalRows.toLocaleString()} rows)`;
+            document.getElementById('deleteAllBtn').style.display = '';
+        } else {
+            document.getElementById('storageInfo').textContent = '';
+            document.getElementById('deleteAllBtn').style.display = 'none';
+        }
+    }
+
+    async function deleteAllData() {
+        if (!confirm('Delete all loaded data from browser storage? This cannot be undone.')) return;
+        for (const name of Object.keys(state.tables)) {
+            alasql(`DROP TABLE IF EXISTS ${name}`);
+        }
+        state.tables = {};
+        state.files = [];
+        state.lastResult = null;
+        await clearStorage();
+        uploadZone.classList.remove('minimized');
+        document.getElementById('querySection').style.display = 'none';
+        document.getElementById('viewTabs').style.display = 'none';
+        document.getElementById('queryView').style.display = '';
+        document.getElementById('explorerView').style.display = 'none';
+        document.getElementById('dictionaryView').style.display = 'none';
+        document.getElementById('savedView').style.display = 'none';
+        refreshUI();
+        updateStorageInfo();
+        clearResults();
+        setStatus('All data deleted');
+    }
+
+    const state = {
+        tables: {},
+        files: [],
+        lastResult: null
+    };
+
+    // Upload handling
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+    function showLoading(text, detail) {
+        document.getElementById('loadingText').textContent = text || 'Loading...';
+        document.getElementById('loadingDetail').textContent = detail || '';
+        document.getElementById('loadingOverlay').classList.add('active');
+    }
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.remove('active');
+    }
+
+    async function handleFiles(files) {
+        const total = files.length;
+        showLoading(`Loading ${total} file${total > 1 ? 's' : ''}...`, '');
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                showLoading(
+                    `Loading file ${i + 1} of ${total}...`,
+                    file.name
+                );
+                await new Promise(r => setTimeout(r, 0));
+                await loadExcelFile(file);
+            }
+            showLoading('Saving to browser storage...', '');
+            await new Promise(r => setTimeout(r, 0));
+            refreshUI();
+            await saveToStorage();
+            updateStorageInfo();
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function loadExcelFile(file) {
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data, { type: 'array', cellDates: true });
+
+        const isDuplicate = state.files.includes(file.name);
+        if (isDuplicate) {
+            // Drop all tables that came from this file before re-loading
+            const oldTables = Object.keys(state.tables).filter(t => state.tables[t].sourceFile === file.name);
+            for (const t of oldTables) {
+                alasql(`DROP TABLE IF EXISTS ${t}`);
+                delete state.tables[t];
+            }
+        } else {
+            state.files.push(file.name);
+        }
+
+        for (const sheetName of wb.SheetNames) {
+            const ws = wb.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: null });
+            if (json.length === 0) continue;
+
+            const tableName = sanitizeTableName(sheetName);
+            
+            if (alasql.tables[tableName]) {
+                // Table exists from a different file — append
+                const existing = alasql(`SELECT * FROM ${tableName}`);
+                const combined = existing.concat(json);
+                alasql(`DROP TABLE IF EXISTS ${tableName}`);
+                alasql(`CREATE TABLE ${tableName}`);
+                alasql.tables[tableName].data = combined;
+                state.tables[tableName].rowCount = combined.length;
+            } else {
+                alasql(`CREATE TABLE ${tableName}`);
+                alasql.tables[tableName].data = json;
+                
+                const columns = Object.keys(json[0]);
+                const types = columns.map(col => inferType(json, col));
+                state.tables[tableName] = { columns, types, rowCount: json.length, sourceFile: file.name };
+            }
+        }
+        setStatus(`Loaded: ${file.name}${isDuplicate ? ' (replaced)' : ''}`);
+    }
+
+    function sanitizeTableName(name) {
+        return name.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^(\d)/, '_$1');
+    }
+
+    function inferType(rows, col) {
+        const sample = rows.slice(0, 50);
+        let hasDate = false, hasNum = false, hasStr = false;
+        for (const row of sample) {
+            const v = row[col];
+            if (v === null || v === undefined) continue;
+            if (v instanceof Date) { hasDate = true; continue; }
+            if (typeof v === 'number') { hasNum = true; continue; }
+            if (typeof v === 'string') {
+                if (/^\d{4}-\d{2}-\d{2}/.test(v)) { hasDate = true; continue; }
+                hasStr = true;
+            }
+        }
+        if (hasDate && !hasStr && !hasNum) return 'date';
+        if (hasNum && !hasStr && !hasDate) return 'number';
+        return 'string';
+    }
+
+    function refreshUI() {
+        // Minimize upload zone
+        if (state.files.length > 0) {
+            uploadZone.classList.add('minimized');
+            document.getElementById('querySection').style.display = '';
+            document.getElementById('viewTabs').style.display = '';
+        }
+
+        // File badges
+        const badges = document.getElementById('fileBadges');
+        badges.innerHTML = state.files.map((f, i) => 
+            `<span class="file-badge">${f}<span class="remove-file" onclick="removeFile(${i})">&times;</span></span>`
+        ).join('');
+
+        // Sidebar table list
+        const tableList = document.getElementById('table-list');
+        const tableNames = Object.keys(state.tables).sort();
+        if (tableNames.length === 0) {
+            tableList.className = 'empty-state';
+            tableList.style.cssText = 'padding:24px;font-size:0.8rem;';
+            tableList.innerHTML = 'No data loaded yet';
+            return;
+        }
+
+        tableList.className = '';
+        tableList.style.cssText = '';
+        tableList.innerHTML = tableNames.map(t => {
+            const info = state.tables[t];
+            return `
+                <div class="table-item" onclick="toggleColumns('${t}', this)">${t}
+                    <span class="row-count">${info.rowCount.toLocaleString()}</span>
+                </div>
+                <div class="column-list" id="cols_${t}" style="display:none;">
+                    ${info.columns.map((c, i) => `<div class="col-item" onclick="insertColumn('${t}', '${c}')">${c}<span class="col-type">${info.types[i]}</span></div>`).join('')}
+                </div>`;
+        }).join('');
+
+        // Update templates
+        buildTemplates();
+        updateStatus();
+    }
+
+    function toggleColumns(tableName, el) {
+        const colDiv = document.getElementById(`cols_${tableName}`);
+        const isVisible = colDiv.style.display !== 'none';
+        // Hide all
+        document.querySelectorAll('.column-list').forEach(d => d.style.display = 'none');
+        document.querySelectorAll('.table-item').forEach(d => d.classList.remove('active'));
+        if (!isVisible) {
+            colDiv.style.display = '';
+            el.classList.add('active');
+        }
+    }
+
+    function insertColumn(table, col) {
+        const ta = document.getElementById('sqlInput');
+        const pos = ta.selectionStart;
+        const text = ta.value;
+        const insert = col;
+        ta.value = text.slice(0, pos) + insert + text.slice(pos);
+        ta.focus();
+        ta.selectionStart = ta.selectionEnd = pos + insert.length;
+    }
+
+    function buildTemplates() {
+        const tables = Object.keys(state.tables);
+        if (tables.length === 0) return;
+
+        const templates = [];
+        
+        // Find tables with common financial columns
+        for (const t of tables) {
+            const info = state.tables[t];
+            const cols = info.columns;
+            
+            if (cols.includes('CurrBook')) {
+                templates.push({ label: `SUM CurrBook (${t})`, sql: `SELECT SUM(CurrBook) AS TotalCurrBook, COUNT(*) AS Records FROM ${t}` });
+            }
+            if (cols.includes('MaturityDate')) {
+                templates.push({ label: `Maturity Range (${t})`, sql: `SELECT * FROM ${t} WHERE MaturityDate >= '2025-01-01' AND MaturityDate <= '2025-12-31' ORDER BY MaturityDate` });
+            }
+            if (cols.includes('CurrBook') && cols.includes('ProductCode')) {
+                templates.push({ label: `By Product (${t})`, sql: `SELECT ProductCode, SUM(CurrBook) AS TotalBook, COUNT(*) AS Cnt FROM ${t} GROUP BY ProductCode ORDER BY TotalBook DESC` });
+            }
+            if (cols.includes('CurrBook') && cols.includes('DeptCode')) {
+                templates.push({ label: `By Dept (${t})`, sql: `SELECT DeptCode, SUM(CurrBook) AS TotalBook, COUNT(*) AS Cnt FROM ${t} GROUP BY DeptCode ORDER BY TotalBook DESC` });
+            }
+        }
+
+        // Closed Accounts by Month (NMD + TD)
+        const closedCandidates = tables.filter(t => {
+            const cols = state.tables[t].columns;
+            return cols.includes('AsOfDate') && cols.includes('ClosedDate');
+        });
+        const nmdTables = closedCandidates.filter(t => t.toUpperCase().includes('NMD') || t.toUpperCase().includes('TD'));
+        if (nmdTables.length > 0) {
+            const unionParts = nmdTables.map(t => `SELECT AsOfDate, ClosedDate, '${t}' AS Source FROM ${t}`);
+            const sql = `SELECT YEARMONTH(AsOfDate) AS Month,\n  SUM(CASE WHEN Source = 'NMD' THEN 1 ELSE 0 END) AS NMD_Closed,\n  SUM(CASE WHEN Source = 'TD' THEN 1 ELSE 0 END) AS TD_Closed,\n  COUNT(*) AS Total_Closed\nFROM (\n  ${unionParts.join('\n  UNION ALL\n  ')}\n) combo\nWHERE ClosedDate IS NOT NULL\n  AND YEARMONTH(ClosedDate) = YEARMONTH(AsOfDate)\nGROUP BY YEARMONTH(AsOfDate)\nORDER BY Month`;
+            templates.push({ label: 'Closed Accounts by Month (NMD+TD)', sql });
+        }
+
+        // Cross-table
+        const currBookTables = tables.filter(t => state.tables[t].columns.includes('CurrBook'));
+        if (currBookTables.length > 1) {
+            const unionParts = currBookTables.map(t => `SELECT '${t}' AS Source, SUM(CurrBook) AS TotalCurrBook, COUNT(*) AS Records FROM ${t}`);
+            templates.push({ label: 'All CurrBook Totals', sql: unionParts.join('\nUNION ALL\n') });
+        }
+
+        // Generic helpers
+        templates.push({ label: 'Show Tables', sql: tables.map(t => `SELECT '${t}' AS TableName, ${state.tables[t].rowCount} AS Rows`).join('\nUNION ALL\n') });
+
+        const container = document.getElementById('templates');
+        container.innerHTML = templates.map(t => 
+            `<span class="template-chip" onclick="useTemplate(this)" data-sql="${escapeAttr(t.sql)}">${t.label}</span>`
+        ).join('');
+    }
+
+    function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+    function useTemplate(el) {
+        document.getElementById('sqlInput').value = el.dataset.sql;
+    }
+
+    // Case-insensitive identifier resolution
+    const SQL_KEYWORDS = new Set([
+        'select','from','where','and','or','not','in','is','null','as','on','join',
+        'left','right','inner','outer','cross','full','group','by','order','having',
+        'limit','offset','union','all','distinct','between','like','case','when',
+        'then','else','end','asc','desc','insert','into','values','update','set',
+        'delete','create','drop','table','if','exists','true','false','count','sum',
+        'avg','min','max','top','with','over','partition','row_number','rank',
+        'dense_rank','cast','convert','coalesce','nullif','iif','trim','upper',
+        'lower','len','length','substring','replace','concat','round','abs','floor',
+        'ceiling','getdate','datepart','datediff','dateadd','year','month','day',
+        'varchar','int','float','decimal','numeric','date','datetime','bit','nvarchar',
+        'primary','key','foreign','references','index','alter','add','column',
+        'yearmonth','combo'
+    ]);
+
+    function fixIdentifierCasing(sql) {
+        const tableMap = {};
+        const colMap = {};
+        for (const [name, meta] of Object.entries(state.tables)) {
+            tableMap[name.toLowerCase()] = name;
+            for (const col of meta.columns) {
+                colMap[col.toLowerCase()] = col;
+            }
+        }
+
+        let result = '';
+        let i = 0;
+        while (i < sql.length) {
+            const ch = sql[i];
+            if (ch === "'" || ch === '"') {
+                const quote = ch;
+                let j = i + 1;
+                while (j < sql.length && sql[j] !== quote) {
+                    if (sql[j] === '\\') j++;
+                    j++;
+                }
+                result += sql.slice(i, j + 1);
+                i = j + 1;
+            } else if (ch === '[') {
+                const j = sql.indexOf(']', i + 1);
+                if (j === -1) { result += ch; i++; continue; }
+                const ident = sql.slice(i + 1, j);
+                const fixedCol = colMap[ident.toLowerCase()];
+                result += '[' + (fixedCol || ident) + ']';
+                i = j + 1;
+            } else if (/[a-zA-Z_]/.test(ch)) {
+                let j = i;
+                while (j < sql.length && /[a-zA-Z0-9_]/.test(sql[j])) j++;
+                const word = sql.slice(i, j);
+                const lower = word.toLowerCase();
+                if (SQL_KEYWORDS.has(lower)) {
+                    result += word;
+                } else if (tableMap[lower]) {
+                    result += tableMap[lower];
+                } else if (colMap[lower]) {
+                    result += colMap[lower];
+                } else {
+                    result += word;
+                }
+                i = j;
+            } else {
+                result += ch;
+                i++;
+            }
+        }
+        return result;
+    }
+
+    // Query execution
+    function runQuery() {
+        const sql = document.getElementById('sqlInput').value.trim();
+        if (!sql) return;
+
+        const start = performance.now();
+        try {
+            const fixedSql = fixIdentifierCasing(sql);
+            const result = alasql(fixedSql);
+            const elapsed = (performance.now() - start).toFixed(1);
+            document.getElementById('queryTime').textContent = `${elapsed}ms`;
+            
+            if (Array.isArray(result) && result.length > 0 && typeof result[0] === 'object') {
+                state.lastResult = result;
+                renderResults(result);
+                document.getElementById('resultInfo').textContent = `${result.length.toLocaleString()} rows returned`;
+            } else if (Array.isArray(result) && result.length === 0) {
+                document.getElementById('resultsWrap').innerHTML = '<div class="success-msg">Query executed successfully. 0 rows returned.</div>';
+                document.getElementById('resultInfo').textContent = '';
+            } else {
+                document.getElementById('resultsWrap').innerHTML = `<div class="success-msg">Result: ${JSON.stringify(result)}</div>`;
+                document.getElementById('resultInfo').textContent = '';
+            }
+        } catch (err) {
+            document.getElementById('resultsWrap').innerHTML = `<div class="error-msg"><strong>Error:</strong> ${err.message}</div>`;
+            document.getElementById('resultInfo').textContent = '';
+            document.getElementById('queryTime').textContent = '';
+        }
+    }
+
+    function renderResults(rows) {
+        if (!rows || rows.length === 0) return;
+        const cols = Object.keys(rows[0]);
+        const numericCols = new Set(cols.filter(c => typeof rows[0][c] === 'number'));
+        
+        const maxRows = 5000;
+        const display = rows.slice(0, maxRows);
+        
+        let html = '<table><thead><tr>' + cols.map(c => `<th${numericCols.has(c) ? ' class="num"' : ''}>${c}</th>`).join('') + '</tr></thead><tbody>';
+        for (const row of display) {
+            html += '<tr>';
+            for (const c of cols) {
+                let val = row[c];
+                const isNum = numericCols.has(c);
+                if (val === null || val === undefined) {
+                    html += '<td style="color:#9ca3af;font-style:italic;">NULL</td>';
+                } else if (val instanceof Date) {
+                    html += `<td>${val.toISOString().split('T')[0]}</td>`;
+                } else if (isNum) {
+                    html += `<td class="num">${typeof val === 'number' ? val.toLocaleString(undefined, {maximumFractionDigits: 2}) : val}</td>`;
+                } else {
+                    html += `<td>${String(val)}</td>`;
+                }
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        
+        if (rows.length > maxRows) {
+            html += `<div style="padding:8px;text-align:center;font-size:0.75rem;color:#64748b;">Showing first ${maxRows.toLocaleString()} of ${rows.length.toLocaleString()} rows</div>`;
+        }
+        
+        document.getElementById('resultsWrap').innerHTML = html;
+    }
+
+    function clearResults() {
+        document.getElementById('resultsWrap').innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg><span>Query results will appear here</span></div>';
+        document.getElementById('resultInfo').textContent = '';
+        document.getElementById('queryTime').textContent = '';
+        state.lastResult = null;
+    }
+
+    function exportCSV() {
+        if (!state.lastResult || state.lastResult.length === 0) return;
+        const cols = Object.keys(state.lastResult[0]);
+        let csv = cols.join(',') + '\n';
+        for (const row of state.lastResult) {
+            csv += cols.map(c => {
+                let v = row[c];
+                if (v === null || v === undefined) return '';
+                if (v instanceof Date) return v.toISOString().split('T')[0];
+                if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) return `"${v.replace(/"/g, '""')}"`;
+                return v;
+            }).join(',') + '\n';
+        }
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'query_results.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function removeFile(index) {
+        // Full reload would be complex; just note it's removed visually
+        state.files.splice(index, 1);
+        refreshUI();
+    }
+
+    function updateStatus() {
+        const tableCount = Object.keys(state.tables).length;
+        const totalRows = Object.values(state.tables).reduce((sum, t) => sum + t.rowCount, 0);
+        document.getElementById('statusLeft').textContent = `${tableCount} tables loaded`;
+        document.getElementById('statusRight').textContent = `${totalRows.toLocaleString()} total records`;
+    }
+
+    function setStatus(msg) {
+        document.getElementById('statusLeft').textContent = msg;
+    }
+
+    // Keyboard shortcut
+    document.getElementById('sqlInput').addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            runQuery();
+        }
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const ta = e.target;
+            const start = ta.selectionStart;
+            ta.value = ta.value.slice(0, start) + '  ' + ta.value.slice(ta.selectionEnd);
+            ta.selectionStart = ta.selectionEnd = start + 2;
+        }
+    });
+
+    // --- View switching ---
+    function switchView(view) {
+        document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+        ['queryView','explorerView','dictionaryView','savedView'].forEach(id => document.getElementById(id).style.display = 'none');
+        if (view !== 'query' && window.location.hash) {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+        const tabs = document.querySelectorAll('.view-tab');
+        if (view === 'query') {
+            document.getElementById('queryView').style.display = '';
+            tabs[0].classList.add('active');
+        } else if (view === 'explorer') {
+            document.getElementById('explorerView').style.display = '';
+            tabs[1].classList.add('active');
+            populateExplorerDropdown();
+        } else if (view === 'dictionary') {
+            document.getElementById('dictionaryView').style.display = '';
+            tabs[2].classList.add('active');
+            populateDictDropdown();
+            loadDictionary();
+        } else if (view === 'saved') {
+            document.getElementById('savedView').style.display = '';
+            tabs[3].classList.add('active');
+            populateSavedFilters();
+            renderSavedQueries();
+        }
+    }
+
+    // --- Data Explorer ---
+    const explorerState = {
+        currentTable: null,
+        currentColumn: null,
+        distinctValues: [],
+        selectedValues: new Set()
+    };
+
+    function populateExplorerDropdown() {
+        const select = document.getElementById('explorerTable');
+        const tables = Object.keys(state.tables).sort();
+        const current = select.value;
+        select.innerHTML = '<option value="">-- Select a table --</option>' +
+            tables.map(t => `<option value="${t}" ${t === current ? 'selected' : ''}>${t} (${state.tables[t].rowCount.toLocaleString()} rows)</option>`).join('');
+    }
+
+    function loadExplorerTable() {
+        const tableName = document.getElementById('explorerTable').value;
+        if (!tableName) {
+            document.getElementById('explorerPreview').innerHTML = '<div class="empty-state" style="padding:40px;"><span>Select a table to preview its data</span></div>';
+            document.getElementById('distinctPanel').style.display = 'none';
+            return;
+        }
+        explorerState.currentTable = tableName;
+        explorerState.currentColumn = null;
+        document.getElementById('distinctPanel').style.display = 'none';
+
+        const rows = alasql(`SELECT * FROM ${tableName} LIMIT 100`);
+        const info = state.tables[tableName];
+        document.getElementById('explorerInfo').textContent = `Showing first ${Math.min(100, info.rowCount)} of ${info.rowCount.toLocaleString()} rows • Click a column header for distinct values`;
+        
+        renderExplorerPreview(rows, tableName);
+    }
+
+    function explorerShowAll() {
+        const tableName = explorerState.currentTable;
+        if (!tableName) return;
+        const rows = alasql(`SELECT * FROM ${tableName}`);
+        const info = state.tables[tableName];
+        document.getElementById('explorerInfo').textContent = `Showing all ${info.rowCount.toLocaleString()} rows • Click a column header for distinct values`;
+        renderExplorerPreview(rows, tableName);
+    }
+
+    function renderExplorerPreview(rows, tableName) {
+        if (!rows || rows.length === 0) {
+            document.getElementById('explorerPreview').innerHTML = '<div class="empty-state" style="padding:40px;"><span>No data in this table</span></div>';
+            return;
+        }
+        const cols = state.tables[tableName].columns;
+        const numericCols = new Set(cols.filter((c, i) => state.tables[tableName].types[i] === 'number'));
+        
+        let html = '<table><thead><tr>' + 
+            cols.map(c => {
+                const cls = [explorerState.currentColumn === c ? 'selected-col' : '', numericCols.has(c) ? 'num' : ''].filter(Boolean).join(' ');
+                return `<th onclick="showDistinct('${tableName}','${c}')"${cls ? ' class="'+cls+'"' : ''}>${c}</th>`;
+            }).join('') + 
+            '</tr></thead><tbody>';
+        
+        const maxDisplay = Math.min(rows.length, 500);
+        for (let i = 0; i < maxDisplay; i++) {
+            const row = rows[i];
+            html += '<tr>';
+            for (const c of cols) {
+                let val = row[c];
+                const isNum = numericCols.has(c);
+                if (val === null || val === undefined) {
+                    html += '<td style="color:#9ca3af;font-style:italic;">NULL</td>';
+                } else if (val instanceof Date) {
+                    html += `<td>${val.toISOString().split('T')[0]}</td>`;
+                } else if (isNum) {
+                    html += `<td class="num">${typeof val === 'number' ? val.toLocaleString(undefined, {maximumFractionDigits: 2}) : val}</td>`;
+                } else {
+                    html += `<td>${String(val)}</td>`;
+                }
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        if (rows.length > 500) {
+            html += `<div style="padding:8px;text-align:center;font-size:0.75rem;color:#64748b;">Preview limited to 500 rows</div>`;
+        }
+        document.getElementById('explorerPreview').innerHTML = html;
+    }
+
+    function showDistinct(tableName, column) {
+        explorerState.currentColumn = column;
+        explorerState.selectedValues.clear();
+        
+        // Highlight column header
+        document.querySelectorAll('#explorerPreview th').forEach(th => th.classList.remove('selected-col'));
+        const cols = state.tables[tableName].columns;
+        const idx = cols.indexOf(column);
+        const ths = document.querySelectorAll('#explorerPreview th');
+        if (ths[idx]) ths[idx].classList.add('selected-col');
+
+        const result = alasql(`SELECT DISTINCT [${column}] AS val FROM ${tableName} ORDER BY [${column}]`);
+        const values = result.map(r => r.val);
+        explorerState.distinctValues = values;
+
+        const panel = document.getElementById('distinctPanel');
+        panel.style.display = '';
+        
+        const colType = state.tables[tableName].types[idx];
+        document.getElementById('distinctTitle').textContent = `Distinct Values: ${column}`;
+        
+        const nullCount = values.filter(v => v === null || v === undefined).length;
+        const nonNull = values.filter(v => v !== null && v !== undefined);
+        let statsHtml = `${values.length} unique values`;
+        if (nullCount > 0) statsHtml += ` (${nullCount} NULL)`;
+        if (colType === 'number' && nonNull.length > 0) {
+            const nums = nonNull.filter(v => typeof v === 'number');
+            if (nums.length > 0) {
+                const min = Math.min(...nums);
+                const max = Math.max(...nums);
+                statsHtml += ` • Range: ${min.toLocaleString()} to ${max.toLocaleString()}`;
+            }
+        }
+        document.getElementById('distinctStats').textContent = statsHtml;
+
+        const valsContainer = document.getElementById('distinctValues');
+        if (values.length > 500) {
+            valsContainer.innerHTML = values.slice(0, 500).map((v, i) => 
+                `<span class="distinct-val" onclick="toggleDistinctVal(this, ${i})">${formatDistinctVal(v)}</span>`
+            ).join('') + `<span style="font-size:0.72rem;color:#64748b;padding:4px;">... and ${values.length - 500} more</span>`;
+        } else {
+            valsContainer.innerHTML = values.map((v, i) => 
+                `<span class="distinct-val" onclick="toggleDistinctVal(this, ${i})">${formatDistinctVal(v)}</span>`
+            ).join('');
+        }
+    }
+
+    function formatDistinctVal(v) {
+        if (v === null || v === undefined) return 'NULL';
+        if (v instanceof Date) return v.toISOString().split('T')[0];
+        return String(v);
+    }
+
+    function toggleDistinctVal(el, idx) {
+        if (explorerState.selectedValues.has(idx)) {
+            explorerState.selectedValues.delete(idx);
+            el.classList.remove('selected');
+        } else {
+            explorerState.selectedValues.add(idx);
+            el.classList.add('selected');
+        }
+    }
+
+    function buildINClause() {
+        const values = explorerState.selectedValues.size > 0
+            ? Array.from(explorerState.selectedValues).map(i => explorerState.distinctValues[i])
+            : explorerState.distinctValues.filter(v => v !== null && v !== undefined);
+        
+        if (values.length === 0) return '';
+        
+        const col = explorerState.currentColumn;
+        const tableName = explorerState.currentTable;
+        const colIdx = state.tables[tableName].columns.indexOf(col);
+        const colType = state.tables[tableName].types[colIdx];
+        
+        const formatted = values.map(v => {
+            if (v instanceof Date) return `'${v.toISOString().split('T')[0]}'`;
+            if (typeof v === 'number') return v;
+            return `'${String(v).replace(/'/g, "''")}'`;
+        });
+        
+        return `${col} IN (${formatted.join(', ')})`;
+    }
+
+    function copySelectedAsIN() {
+        const clause = buildINClause();
+        if (!clause) return;
+        navigator.clipboard.writeText(clause);
+        showToast('IN clause copied to clipboard!');
+    }
+
+    function copyAllDistinct() {
+        const values = explorerState.distinctValues
+            .filter(v => v !== null && v !== undefined)
+            .map(v => formatDistinctVal(v));
+        navigator.clipboard.writeText(values.join('\n'));
+        showToast(`${values.length} values copied to clipboard!`);
+    }
+
+    function insertINtoQuery() {
+        const clause = buildINClause();
+        if (!clause) return;
+        
+        const ta = document.getElementById('sqlInput');
+        const currentSQL = ta.value.trim();
+        
+        if (currentSQL === '') {
+            ta.value = `SELECT * FROM ${explorerState.currentTable} WHERE ${clause}`;
+        } else {
+            const pos = ta.selectionStart;
+            ta.value = ta.value.slice(0, pos) + clause + ta.value.slice(pos);
+        }
+        
+        switchView('query');
+        ta.focus();
+        showToast('IN clause inserted into SQL editor');
+    }
+
+    // --- Saved Queries ---
+    const SAVED_QUERIES_KEY = 'savedQueries';
+
+    async function loadSavedQueries() {
+        try {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.get(SAVED_QUERIES_KEY);
+            return new Promise(resolve => {
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => resolve([]);
+            });
+        } catch { return []; }
+    }
+
+    async function persistSavedQueries(queries) {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(queries, SAVED_QUERIES_KEY);
+        return new Promise(resolve => { tx.oncomplete = resolve; });
+    }
+
+    function goToSaveQuery() {
+        switchView('saved');
+        document.getElementById('saveQueryName').focus();
+    }
+
+    async function saveCurrentQuery() {
+        const name = document.getElementById('saveQueryName').value.trim();
+        const sql = document.getElementById('sqlInput').value.trim();
+        if (!name) { showToast('Please enter a query name'); return; }
+        if (!sql) { showToast('No SQL query to save — write one in the SQL Query tab first'); return; }
+
+        const page = document.getElementById('saveQueryPage').value.trim();
+        const section = document.getElementById('saveQuerySection').value.trim();
+        const tab = document.getElementById('saveQueryTab').value.trim();
+
+        const queries = await loadSavedQueries();
+        const existing = queries.find(q => q.name.toLowerCase() === name.toLowerCase());
+
+        if (existing) {
+            if (!confirm(`A query named "${existing.name}" already exists. Overwrite it?`)) return;
+            existing.sql = sql;
+            existing.page = page || existing.page;
+            existing.section = section || existing.section;
+            existing.tab = tab || existing.tab;
+            existing.updated = new Date().toISOString();
+        } else {
+            queries.push({ id: Date.now(), name, sql, page, section, tab, created: new Date().toISOString() });
+        }
+        await persistSavedQueries(queries);
+
+        document.getElementById('saveQueryName').value = '';
+        document.getElementById('saveQueryPage').value = '';
+        document.getElementById('saveQuerySection').value = '';
+        document.getElementById('saveQueryTab').value = '';
+
+        populateSavedFilters();
+        renderSavedQueries();
+        showToast(existing ? `Updated: "${name}"` : `Saved: "${name}"`);
+    }
+
+    function loadSavedToEditor(sql, queryId) {
+        document.getElementById('sqlInput').value = sql;
+        if (queryId) {
+            window.location.hash = 'query=' + queryId;
+        }
+        switchView('query');
+        document.getElementById('sqlInput').focus();
+        showToast('Query loaded into editor');
+    }
+
+    function copyQueryLink(queryId) {
+        const url = window.location.href.split('#')[0] + '#query=' + queryId;
+        navigator.clipboard.writeText(url);
+        showToast('Query link copied to clipboard!');
+    }
+
+    async function populateSavedFilters() {
+        const queries = await loadSavedQueries();
+        const pages = [...new Set(queries.map(q => q.page).filter(Boolean))].sort();
+        const sections = [...new Set(queries.map(q => q.section).filter(Boolean))].sort();
+        const tabs = [...new Set(queries.map(q => q.tab).filter(Boolean))].sort();
+
+        const pSel = document.getElementById('savedFilterPage');
+        const curP = pSel.value;
+        pSel.innerHTML = '<option value="">All Pages</option>' + pages.map(p => `<option value="${p}" ${p === curP ? 'selected' : ''}>${p}</option>`).join('');
+
+        const sSel = document.getElementById('savedFilterSection');
+        const curS = sSel.value;
+        sSel.innerHTML = '<option value="">All Sections</option>' + sections.map(s => `<option value="${s}" ${s === curS ? 'selected' : ''}>${s}</option>`).join('');
+
+        const tSel = document.getElementById('savedFilterTab');
+        const curT = tSel.value;
+        tSel.innerHTML = '<option value="">All Tabs</option>' + tabs.map(t => `<option value="${t}" ${t === curT ? 'selected' : ''}>${t}</option>`).join('');
+    }
+
+    const savedSortState = { col: 'name', dir: 'asc' };
+
+    async function renderSavedQueries() {
+        const queries = await loadSavedQueries();
+        const search = (document.getElementById('savedSearch').value || '').toLowerCase();
+        const fPage = document.getElementById('savedFilterPage').value;
+        const fSection = document.getElementById('savedFilterSection').value;
+        const fTab = document.getElementById('savedFilterTab').value;
+
+        let filtered = queries;
+        if (search) filtered = filtered.filter(q => q.name.toLowerCase().includes(search) || q.sql.toLowerCase().includes(search) || (q.page || '').toLowerCase().includes(search) || (q.section || '').toLowerCase().includes(search) || (q.tab || '').toLowerCase().includes(search));
+        if (fPage) filtered = filtered.filter(q => q.page === fPage);
+        if (fSection) filtered = filtered.filter(q => q.section === fSection);
+        if (fTab) filtered = filtered.filter(q => q.tab === fTab);
+
+        const sc = savedSortState.col;
+        const sd = savedSortState.dir === 'asc' ? 1 : -1;
+        filtered.sort((a, b) => {
+            const av = (a[sc] || '').toLowerCase();
+            const bv = (b[sc] || '').toLowerCase();
+            return av < bv ? -sd : av > bv ? sd : 0;
+        });
+
+        document.getElementById('savedInfo').textContent = `${filtered.length} of ${queries.length} queries`;
+        const container = document.getElementById('savedQueryList');
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-400);">' +
+                (queries.length === 0 ? 'No saved queries yet — write a query in the SQL tab and save it here' : 'No queries match your filters') + '</div>';
+            return;
+        }
+
+        function sortArrow(col) {
+            const active = savedSortState.col === col;
+            const arrow = active ? (savedSortState.dir === 'asc' ? '&#9650;' : '&#9660;') : '&#9650;';
+            return `<span class="sort-arrow${active ? ' active' : ''}">${arrow}</span>`;
+        }
+
+        let html = `<table class="saved-table"><thead><tr>
+            <th onclick="sortSavedQueries('name')">Query Name ${sortArrow('name')}</th>
+            <th onclick="sortSavedQueries('page')">Page ${sortArrow('page')}</th>
+            <th onclick="sortSavedQueries('section')">Section ${sortArrow('section')}</th>
+            <th onclick="sortSavedQueries('tab')">Tab ${sortArrow('tab')}</th>
+            <th style="cursor:default;">Actions</th>
+        </tr></thead><tbody>`;
+
+        for (const q of filtered) {
+            const sqlJson = JSON.stringify(q.sql).replace(/"/g, '&quot;');
+            const nameJson = JSON.stringify(q.name).replace(/"/g, '&quot;');
+            html += `<tr class="sq-row" onclick="toggleSavedRow(${q.id}, event)">
+                <td class="sq-name">${escHtml(q.name)}</td>
+                <td class="sq-page">${escHtml(q.page || '')}</td>
+                <td class="sq-section">${escHtml(q.section || '')}</td>
+                <td class="sq-tab">${escHtml(q.tab || '')}</td>
+                <td class="sq-actions" onclick="event.stopPropagation()">
+                    <button class="btn btn-sm btn-primary" onclick="loadSavedToEditor(${sqlJson}, ${q.id})" title="Load into SQL editor">Load</button>
+                    <button class="btn btn-sm btn-secondary" onclick="copyQueryLink(${q.id})" title="Copy shareable link">Link</button>
+                    <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(${sqlJson});showToast('SQL copied!')" title="Copy SQL to clipboard">Copy</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSavedQuery(${q.id}, ${nameJson})" title="Delete this query">Del</button>
+                </td>
+            </tr>`;
+            html += `<tr class="sq-detail-row hidden" id="sqd_${q.id}"><td colspan="5"><div class="sq-detail-inner">
+                <pre>${escHtml(q.sql)}</pre>
+                <div class="sq-detail-actions">
+                    <button class="btn btn-sm btn-primary" onclick="loadSavedToEditor(${sqlJson}, ${q.id})">Load into Editor</button>
+                    <button class="btn btn-sm btn-secondary" onclick="copyQueryLink(${q.id})">Copy Link</button>
+                    <button class="btn btn-sm btn-secondary" onclick="updateSavedQuery(${q.id})">Save Over from Editor</button>
+                    <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(${sqlJson});showToast('SQL copied!')">Copy SQL</button>
+                    <button class="btn btn-sm btn-secondary" onclick="toggleEditForm(${q.id})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSavedQuery(${q.id}, ${nameJson})">Delete</button>
+                    <span style="font-size:0.68rem;color:var(--gray-400);margin-left:auto;">${q.created ? new Date(q.created).toLocaleDateString() : ''}${q.updated ? ' (edited ' + new Date(q.updated).toLocaleDateString() + ')' : ''}</span>
+                </div>
+                <div class="sq-edit-form" id="sqe_${q.id}">
+                    <div class="sq-edit-row">
+                        <label>Name</label>
+                        <input type="text" id="sqen_${q.id}" value="${escHtml(q.name)}">
+                    </div>
+                    <div class="sq-edit-row">
+                        <label>Page</label>
+                        <input type="text" id="sqep_${q.id}" value="${escHtml(q.page || '')}">
+                        <label>Section</label>
+                        <input type="text" id="sqes_${q.id}" value="${escHtml(q.section || '')}">
+                        <label>Tab</label>
+                        <input type="text" id="sqet_${q.id}" value="${escHtml(q.tab || '')}">
+                    </div>
+                    <div class="sq-edit-row" style="align-items:flex-start;">
+                        <label style="padding-top:6px;">SQL</label>
+                        <textarea id="sqeq_${q.id}" style="flex:1;min-width:200px;height:100px;font-family:'Cascadia Code','Fira Code',monospace;font-size:0.8rem;background:white;border:1px solid var(--gray-300);color:var(--gray-900);padding:8px;border-radius:6px;resize:vertical;outline:none;">${escHtml(q.sql)}</textarea>
+                    </div>
+                    <div class="sq-edit-actions">
+                        <button class="btn btn-sm btn-primary" onclick="saveEditForm(${q.id})">Save Changes</button>
+                        <button class="btn btn-sm btn-secondary" onclick="toggleEditForm(${q.id})">Cancel</button>
+                    </div>
+                </div>
+            </div></td></tr>`;
+        }
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function sortSavedQueries(col) {
+        if (savedSortState.col === col) {
+            savedSortState.dir = savedSortState.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            savedSortState.col = col;
+            savedSortState.dir = 'asc';
+        }
+        renderSavedQueries();
+    }
+
+    function toggleSavedRow(id, event) {
+        if (event.target.closest('button, input, textarea, .sq-edit-form')) return;
+        const detail = document.getElementById(`sqd_${id}`);
+        const row = detail.previousElementSibling;
+        detail.classList.toggle('hidden');
+        row.classList.toggle('active');
+    }
+
+    async function deleteSavedQuery(id, name) {
+        if (!confirm(`Delete saved query "${name}"?`)) return;
+        const queries = await loadSavedQueries();
+        const updated = queries.filter(q => q.id !== id);
+        await persistSavedQueries(updated);
+        populateSavedFilters();
+        renderSavedQueries();
+        showToast(`Deleted: "${name}"`);
+    }
+
+    async function updateSavedQuery(id) {
+        const sql = document.getElementById('sqlInput').value.trim();
+        if (!sql) { showToast('No SQL in the editor — write a query in the SQL Query tab first'); return; }
+        const queries = await loadSavedQueries();
+        const query = queries.find(q => q.id === id);
+        if (!query) { showToast('Query not found'); return; }
+        if (!confirm(`Update "${query.name}" with the current SQL from the editor?`)) return;
+        query.sql = sql;
+        query.updated = new Date().toISOString();
+        await persistSavedQueries(queries);
+        renderSavedQueries();
+        showToast(`Updated: "${query.name}"`);
+    }
+
+    function toggleEditForm(id) {
+        const form = document.getElementById(`sqe_${id}`);
+        if (form) form.classList.toggle('open');
+    }
+
+    async function saveEditForm(id) {
+        const name = document.getElementById(`sqen_${id}`).value.trim();
+        if (!name) { showToast('Name cannot be empty'); return; }
+        const page = document.getElementById(`sqep_${id}`).value.trim();
+        const section = document.getElementById(`sqes_${id}`).value.trim();
+        const tab = document.getElementById(`sqet_${id}`).value.trim();
+        const sql = document.getElementById(`sqeq_${id}`).value.trim();
+        if (!sql) { showToast('SQL cannot be empty'); return; }
+
+        const queries = await loadSavedQueries();
+        const query = queries.find(q => q.id === id);
+        if (!query) { showToast('Query not found'); return; }
+
+        query.name = name;
+        query.page = page;
+        query.section = section;
+        query.tab = tab;
+        query.sql = sql;
+        query.updated = new Date().toISOString();
+
+        await persistSavedQueries(queries);
+        populateSavedFilters();
+        renderSavedQueries();
+        showToast(`Updated: "${name}"`);
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    // --- Data Dictionary ---
+    const dictState = { fieldData: [], selectedVals: {} };
+
+    function populateDictDropdown() {
+        const select = document.getElementById('dictTable');
+        const tables = Object.keys(state.tables).sort();
+        const current = select.value;
+        select.innerHTML = '<option value="">-- All tables --</option>' +
+            tables.map(t => `<option value="${t}" ${t === current ? 'selected' : ''}>${t}</option>`).join('');
+    }
+
+    function loadDictionary() {
+        const filter = document.getElementById('dictTable').value;
+        const tables = filter ? [filter] : Object.keys(state.tables).sort();
+        
+        dictState.fieldData = [];
+        for (const t of tables) {
+            const info = state.tables[t];
+            info.columns.forEach((col, i) => {
+                dictState.fieldData.push({ table: t, column: col, type: info.types[i], colIdx: i });
+            });
+        }
+        renderDictionary();
+    }
+
+    function filterDictionary() { renderDictionary(); }
+
+    function renderDictionary() {
+        const search = document.getElementById('dictSearch').value.toLowerCase();
+        const container = document.getElementById('dictFieldList');
+        let fields = dictState.fieldData;
+        
+        if (search) {
+            fields = fields.filter(f => 
+                f.column.toLowerCase().includes(search) || f.table.toLowerCase().includes(search)
+            );
+        }
+        
+        document.getElementById('dictInfo').textContent = `${fields.length} fields`;
+        
+        if (fields.length === 0) {
+            container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-400);">No fields found</div>';
+            return;
+        }
+
+        container.innerHTML = fields.map((f, idx) => {
+            const key = `${f.table}.${f.column}`;
+            const typeClass = `type-${f.type}`;
+            const showTable = !document.getElementById('dictTable').value;
+            return `<div class="dict-field" id="df_${idx}">
+                <div class="dict-field-header" onclick="toggleDictField(${idx}, '${f.table}', '${f.column}')">
+                    <span class="dict-chevron" id="dfc_${idx}">&#9654;</span>
+                    <span class="dict-field-name">${showTable ? '<span style="color:var(--gray-400);font-weight:400;">' + f.table + '.</span>' : ''}${f.column}</span>
+                    <div class="dict-field-meta">
+                        <span class="dict-badge ${typeClass}">${f.type}</span>
+                        <span class="dict-unique" id="dfu_${idx}"></span>
+                    </div>
+                </div>
+                <div class="dict-field-body" id="dfb_${idx}"></div>
+            </div>`;
+        }).join('');
+    }
+
+    function toggleDictField(idx, table, column) {
+        const body = document.getElementById(`dfb_${idx}`);
+        const chevron = document.getElementById(`dfc_${idx}`);
+        const isOpen = body.classList.contains('open');
+        
+        if (isOpen) {
+            body.classList.remove('open');
+            chevron.classList.remove('open');
+            return;
+        }
+        
+        body.classList.add('open');
+        chevron.classList.add('open');
+        
+        if (body.dataset.loaded) return;
+        body.dataset.loaded = 'true';
+        
+        const result = alasql(`SELECT DISTINCT [${column}] AS val FROM ${table} ORDER BY [${column}]`);
+        const values = result.map(r => r.val);
+        const totalRows = state.tables[table].rowCount;
+        const nullCount = values.filter(v => v === null || v === undefined).length;
+        const nonNull = values.filter(v => v !== null && v !== undefined);
+        const colIdx = state.tables[table].columns.indexOf(column);
+        const colType = state.tables[table].types[colIdx];
+        
+        document.getElementById(`dfu_${idx}`).textContent = `${values.length} unique`;
+        
+        let summaryParts = [`<span><strong>${values.length}</strong> distinct</span>`];
+        summaryParts.push(`<span><strong>${totalRows.toLocaleString()}</strong> total rows</span>`);
+        if (nullCount > 0) summaryParts.push(`<span><strong>${nullCount}</strong> NULL</span>`);
+        if (colType === 'number' && nonNull.length > 0) {
+            const nums = nonNull.filter(v => typeof v === 'number');
+            if (nums.length > 0) {
+                summaryParts.push(`<span>Min: <strong>${Math.min(...nums).toLocaleString()}</strong></span>`);
+                summaryParts.push(`<span>Max: <strong>${Math.max(...nums).toLocaleString()}</strong></span>`);
+            }
+        }
+        if (colType === 'date' && nonNull.length > 0) {
+            const sorted = nonNull.sort();
+            summaryParts.push(`<span>Earliest: <strong>${formatDictVal(sorted[0])}</strong></span>`);
+            summaryParts.push(`<span>Latest: <strong>${formatDictVal(sorted[sorted.length - 1])}</strong></span>`);
+        }
+        
+        const key = `${table}.${column}`;
+        dictState.selectedVals[key] = new Set();
+        
+        const displayVals = values.length > 300 ? values.slice(0, 300) : values;
+        const moreCount = values.length > 300 ? values.length - 300 : 0;
+        
+        body.innerHTML = `<div class="dict-summary">${summaryParts.join('')}</div>
+            <div class="dict-vals-wrap" id="dvw_${idx}">
+                ${displayVals.map((v, vi) => `<span class="dict-val-chip" onclick="toggleDictVal('${key}', ${vi}, this)">${formatDictVal(v)}</span>`).join('')}
+                ${moreCount > 0 ? `<span style="font-size:0.72rem;color:var(--gray-400);padding:4px;">+${moreCount} more</span>` : ''}
+            </div>
+            <div class="dict-actions">
+                <button class="btn btn-sm btn-secondary" onclick="dictCopyIN('${table}','${column}','${key}')">Copy as IN (...)</button>
+                <button class="btn btn-sm btn-secondary" onclick="dictCopyList('${key}')">Copy List</button>
+                <button class="btn btn-sm btn-secondary" onclick="dictInsertIN('${table}','${column}','${key}')">Insert into SQL</button>
+            </div>`;
+        
+        dictState.selectedVals[key] = { set: new Set(), values: values };
+    }
+
+    function formatDictVal(v) {
+        if (v === null || v === undefined) return 'NULL';
+        if (v instanceof Date) return v.toISOString().split('T')[0];
+        return String(v);
+    }
+
+    function toggleDictVal(key, idx, el) {
+        const entry = dictState.selectedVals[key];
+        if (!entry) return;
+        if (entry.set.has(idx)) {
+            entry.set.delete(idx);
+            el.classList.remove('selected');
+        } else {
+            entry.set.add(idx);
+            el.classList.add('selected');
+        }
+    }
+
+    function buildDictIN(table, column, key) {
+        const entry = dictState.selectedVals[key];
+        if (!entry) return '';
+        const vals = entry.set.size > 0
+            ? Array.from(entry.set).map(i => entry.values[i])
+            : entry.values.filter(v => v !== null && v !== undefined);
+        if (vals.length === 0) return '';
+        const colIdx = state.tables[table].columns.indexOf(column);
+        const formatted = vals.map(v => {
+            if (v instanceof Date) return `'${v.toISOString().split('T')[0]}'`;
+            if (typeof v === 'number') return v;
+            return `'${String(v).replace(/'/g, "''")}'`;
+        });
+        return `${column} IN (${formatted.join(', ')})`;
+    }
+
+    function dictCopyIN(table, column, key) {
+        const clause = buildDictIN(table, column, key);
+        if (!clause) return;
+        navigator.clipboard.writeText(clause);
+        showToast('IN clause copied!');
+    }
+
+    function dictCopyList(key) {
+        const entry = dictState.selectedVals[key];
+        if (!entry) return;
+        const vals = entry.set.size > 0
+            ? Array.from(entry.set).map(i => entry.values[i])
+            : entry.values.filter(v => v !== null && v !== undefined);
+        navigator.clipboard.writeText(vals.map(formatDictVal).join('\n'));
+        showToast(`${vals.length} values copied!`);
+    }
+
+    function dictInsertIN(table, column, key) {
+        const clause = buildDictIN(table, column, key);
+        if (!clause) return;
+        const ta = document.getElementById('sqlInput');
+        if (ta.value.trim() === '') {
+            ta.value = `SELECT * FROM ${table} WHERE ${clause}`;
+        } else {
+            const pos = ta.selectionStart;
+            ta.value = ta.value.slice(0, pos) + clause + ta.value.slice(pos);
+        }
+        switchView('query');
+        ta.focus();
+        showToast('IN clause inserted into SQL editor');
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('copyToast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // Restore data from browser storage on page load, then handle deep-links
+    restoreSession().then(() => handleDeepLink());
+
+    async function handleDeepLink() {
+        const hash = window.location.hash;
+        if (!hash || !hash.startsWith('#query=')) return;
+        const queryId = parseInt(hash.slice(7), 10);
+        if (isNaN(queryId)) return;
+
+        const queries = await loadSavedQueries();
+        const query = queries.find(q => q.id === queryId);
+        if (!query) {
+            showToast('Query not found — it may not be saved in this browser');
+            return;
+        }
+
+        document.getElementById('sqlInput').value = query.sql;
+        switchView('query');
+        showToast(`Loaded query: "${query.name}"`);
+    }
+
+    window.addEventListener('hashchange', () => handleDeepLink());
+    </script>
+</body>
+</html>
