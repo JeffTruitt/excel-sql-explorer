@@ -844,33 +844,48 @@
     }
 
     // Query execution
+    let queryRunning = false;
     function runQuery() {
         const sql = document.getElementById('sqlInput').value.trim();
-        if (!sql) return;
+        if (!sql || queryRunning) return;
 
-        const start = performance.now();
-        try {
-            const fixedSql = fixIdentifierCasing(sql);
-            const result = alasql(fixedSql);
-            const elapsed = (performance.now() - start).toFixed(1);
-            document.getElementById('queryTime').textContent = `${elapsed}ms`;
-            
-            if (Array.isArray(result) && result.length > 0 && typeof result[0] === 'object') {
-                state.lastResult = result;
-                renderResults(result);
-                document.getElementById('resultInfo').textContent = `${result.length.toLocaleString()} rows returned`;
-            } else if (Array.isArray(result) && result.length === 0) {
-                document.getElementById('resultsWrap').innerHTML = '<div class="success-msg">Query executed successfully. 0 rows returned.</div>';
+        queryRunning = true;
+        const runBtn = document.querySelector('.query-toolbar .btn-primary');
+        runBtn.disabled = true;
+        runBtn.textContent = 'Running...';
+        document.getElementById('resultsWrap').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:40px;color:var(--gray-500);"><div class="loading-spinner" style="width:24px;height:24px;border-width:2px;"></div><span style="font-size:0.85rem;">Running query...</span></div>';
+        document.getElementById('resultInfo').textContent = '';
+        document.getElementById('queryTime').textContent = '';
+
+        setTimeout(() => {
+            const start = performance.now();
+            try {
+                const fixedSql = fixIdentifierCasing(sql);
+                const result = alasql(fixedSql);
+                const elapsed = (performance.now() - start).toFixed(1);
+                document.getElementById('queryTime').textContent = `${elapsed}ms`;
+                
+                if (Array.isArray(result) && result.length > 0 && typeof result[0] === 'object') {
+                    state.lastResult = result;
+                    renderResults(result);
+                    document.getElementById('resultInfo').textContent = `${result.length.toLocaleString()} rows returned`;
+                } else if (Array.isArray(result) && result.length === 0) {
+                    document.getElementById('resultsWrap').innerHTML = '<div class="success-msg">Query executed successfully. 0 rows returned.</div>';
+                    document.getElementById('resultInfo').textContent = '';
+                } else {
+                    document.getElementById('resultsWrap').innerHTML = `<div class="success-msg">Result: ${JSON.stringify(result)}</div>`;
+                    document.getElementById('resultInfo').textContent = '';
+                }
+            } catch (err) {
+                document.getElementById('resultsWrap').innerHTML = `<div class="error-msg"><strong>Error:</strong> ${err.message}</div>`;
                 document.getElementById('resultInfo').textContent = '';
-            } else {
-                document.getElementById('resultsWrap').innerHTML = `<div class="success-msg">Result: ${JSON.stringify(result)}</div>`;
-                document.getElementById('resultInfo').textContent = '';
+                document.getElementById('queryTime').textContent = '';
+            } finally {
+                queryRunning = false;
+                runBtn.disabled = false;
+                runBtn.textContent = 'Run Query (Ctrl+Enter)';
             }
-        } catch (err) {
-            document.getElementById('resultsWrap').innerHTML = `<div class="error-msg"><strong>Error:</strong> ${err.message}</div>`;
-            document.getElementById('resultInfo').textContent = '';
-            document.getElementById('queryTime').textContent = '';
-        }
+        }, 30);
     }
 
     function renderResults(rows) {
