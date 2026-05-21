@@ -55,7 +55,9 @@
         .import-file-table td.num { text-align: right; font-family: 'Cascadia Code', monospace; }
         
         /* Pages view */
-        .pages-panel { flex: 1; overflow: hidden; padding: 16px; display: flex; flex-direction: column; min-height: 0; }
+        #pagesView { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .pages-panel { flex: 1; padding: 16px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+        #pageEditor { flex: 1; display: flex; flex-direction: column; min-height: 0; }
         .page-header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-shrink: 0; }
         .page-title-input { font-size: 1.2rem; font-weight: 700; color: var(--navy); border: none; border-bottom: 2px solid transparent; padding: 8px 4px; flex: 1; min-width: 0; outline: none; background: transparent; transition: border-color 0.2s; }
         .page-title-input:focus { border-bottom-color: var(--blue); }
@@ -328,7 +330,7 @@
             <!-- Pages View -->
             <div id="pagesView" style="display:none;">
                 <div class="pages-panel" id="pagesPanel">
-                    <div id="pageListView">
+                    <div id="pageListView" style="overflow-y:auto;">
                         <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                             <h2 style="font-size:1rem; font-weight:700; color:var(--navy); flex:1;">Pages</h2>
                             <button class="btn btn-sm btn-secondary" onclick="togglePageSort()" id="pageSortBtn">Sort: Recent</button>
@@ -336,7 +338,7 @@
                         </div>
                         <div id="page-list"></div>
                     </div>
-                    <div id="pageEditor" style="display:none; flex:1; flex-direction:column; min-height:0;">
+                    <div id="pageEditor" style="display:none;">
                         <div class="page-header-row">
                             <button class="btn btn-sm btn-secondary" onclick="backToPageList()" style="flex-shrink:0;">&larr; All Pages</button>
                             <input type="text" class="page-title-input" id="pageTitleInput" placeholder="Page name..." oninput="onPageTitleChange()">
