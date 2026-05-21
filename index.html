@@ -251,6 +251,7 @@
                         <button class="btn btn-secondary" onclick="clearResults()">Clear</button>
                         <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
                         <button class="btn btn-secondary" onclick="goToSaveQuery()">Save Query</button>
+                        <button class="btn btn-secondary" onclick="copyEditorLink()">Copy Link</button>
                         <span id="queryTime" style="font-size:0.75rem; color:#64748b; margin-left:auto;"></span>
                     </div>
                 </div>
@@ -1240,10 +1241,37 @@
         showToast('Query loaded into editor');
     }
 
-    function copyQueryLink(queryId) {
-        const url = window.location.href.split('#')[0] + '#query=' + queryId;
+    function encodeQueryHash(payload) {
+        return '#q=' + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    }
+
+    function decodeQueryHash(hash) {
+        try {
+            const b64 = hash.slice(3);
+            return JSON.parse(decodeURIComponent(escape(atob(b64))));
+        } catch { return null; }
+    }
+
+    async function copyQueryLink(queryId) {
+        const queries = await loadSavedQueries();
+        const q = queries.find(x => x.id === queryId);
+        if (!q) { showToast('Query not found'); return; }
+        const payload = { name: q.name, sql: q.sql };
+        if (q.page) payload.page = q.page;
+        if (q.section) payload.section = q.section;
+        if (q.tab) payload.tab = q.tab;
+        const url = window.location.href.split('#')[0] + encodeQueryHash(payload);
         navigator.clipboard.writeText(url);
-        showToast('Query link copied to clipboard!');
+        showToast('Shareable query link copied!');
+    }
+
+    function copyEditorLink() {
+        const sql = document.getElementById('sqlInput').value.trim();
+        if (!sql) { showToast('No SQL in the editor to share'); return; }
+        const payload = { name: 'Shared Query', sql };
+        const url = window.location.href.split('#')[0] + encodeQueryHash(payload);
+        navigator.clipboard.writeText(url);
+        showToast('Shareable link copied!');
     }
 
     async function populateSavedFilters() {
@@ -1645,20 +1673,33 @@
 
     async function handleDeepLink() {
         const hash = window.location.hash;
-        if (!hash || !hash.startsWith('#query=')) return;
-        const queryId = parseInt(hash.slice(7), 10);
-        if (isNaN(queryId)) return;
+        if (!hash) return;
 
-        const queries = await loadSavedQueries();
-        const query = queries.find(q => q.id === queryId);
-        if (!query) {
-            showToast('Query not found — it may not be saved in this browser');
+        if (hash.startsWith('#q=')) {
+            const payload = decodeQueryHash(hash);
+            if (!payload || !payload.sql) {
+                showToast('Could not decode the shared query link');
+                return;
+            }
+            document.getElementById('sqlInput').value = payload.sql;
+            switchView('query');
+            showToast(payload.name ? `Loaded query: "${payload.name}"` : 'Shared query loaded');
             return;
         }
 
-        document.getElementById('sqlInput').value = query.sql;
-        switchView('query');
-        showToast(`Loaded query: "${query.name}"`);
+        if (hash.startsWith('#query=')) {
+            const queryId = parseInt(hash.slice(7), 10);
+            if (isNaN(queryId)) return;
+            const queries = await loadSavedQueries();
+            const query = queries.find(q => q.id === queryId);
+            if (!query) {
+                showToast('Query not found — it may not be saved in this browser');
+                return;
+            }
+            document.getElementById('sqlInput').value = query.sql;
+            switchView('query');
+            showToast(`Loaded query: "${query.name}"`);
+        }
     }
 
     window.addEventListener('hashchange', () => handleDeepLink());
