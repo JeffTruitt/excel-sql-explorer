@@ -35,17 +35,12 @@
         .main { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
         
         /* Upload zone */
-        .upload-row { display: flex; align-items: center; gap: 12px; margin: 16px 16px 0; }
-        .upload-row.minimized { margin: 8px 16px 0; }
-        .upload-zone { padding: 32px; border: 2px dashed var(--gray-300); border-radius: var(--radius); text-align: center; transition: all 0.2s; cursor: pointer; background: white; flex: 1; }
+        .upload-zone { padding: 32px; border: 2px dashed var(--gray-300); border-radius: var(--radius); text-align: center; transition: all 0.2s; cursor: pointer; background: white; }
         .upload-zone:hover, .upload-zone.dragover { border-color: var(--blue); background: var(--blue-light); }
         .upload-zone h2 { font-size: 1.1rem; color: var(--navy); margin-bottom: 8px; font-weight: 700; }
         .upload-zone p { font-size: 0.85rem; color: var(--gray-500); }
         .upload-zone input { display: none; }
-        .upload-zone.minimized { padding: 12px; }
-        .upload-zone.minimized h2 { font-size: 0.85rem; margin: 0; }
-        .upload-zone.minimized p { display: none; }
-        .data-files-link { flex-shrink: 0; padding: 10px 16px; background: var(--blue); color: white; border-radius: 8px; font-size: 0.82rem; font-weight: 500; text-decoration: none; white-space: nowrap; box-shadow: var(--shadow); transition: background 0.15s; }
+        .data-files-link { display: inline-block; padding: 10px 16px; background: var(--blue); color: white; border-radius: 8px; font-size: 0.82rem; font-weight: 500; text-decoration: none; white-space: nowrap; box-shadow: var(--shadow); transition: background 0.15s; }
         .data-files-link:hover { background: #3b82f6; }
         
         /* File badges */
@@ -215,8 +210,7 @@
     <div class="app-header">
         <h1>Excel <span>SQL Explorer</span></h1>
         <span class="subtitle">Upload Excel files and query them with SQL</span>
-        <span id="storageInfo" style="font-size:0.72rem; color:rgba(255,255,255,.5); margin-left:auto;"></span>
-        <button class="btn btn-danger" id="deleteAllBtn" style="display:none;" onclick="deleteAllData()">Delete All Data</button>
+        <span style="margin-left:auto;"></span>
     </div>
     
     <div class="layout">
@@ -228,22 +222,12 @@
         </div>
         
         <div class="main">
-            <div class="upload-row" id="uploadRow">
-                <div class="upload-zone" id="uploadZone">
-                    <h2>Drop Excel files here or click to browse</h2>
-                    <p>Supports .xlsx files &bull; Load multiple months to compare</p>
-                    <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv">
-                </div>
-                <a class="data-files-link" href="https://empyreansolutions.sharepoint.com/Shared%20Documents/Forms/AllItems.aspx?id=%2FShared%20Documents%2FExplorer%2FDemo%20System%2FClaude%20Fake%20Data%2FData%20Set&viewid=bf15d09f%2D66f3%2D4494%2D81f3%2D0cbf31c9069b" target="_blank" rel="noopener">Download Data Files</a>
-            </div>
-            
-            <div class="file-badges" id="fileBadges"></div>
-            
-            <div class="view-tabs" id="viewTabs" style="display:none;">
+            <div class="view-tabs" id="viewTabs">
                 <div class="view-tab active" onclick="switchView('query')">SQL Query</div>
                 <div class="view-tab" onclick="switchView('explorer')">Data Explorer</div>
                 <div class="view-tab" onclick="switchView('dictionary')">Data Dictionary</div>
                 <div class="view-tab" onclick="switchView('saved')">Saved Queries</div>
+                <div class="view-tab" onclick="switchView('import')">Import Data</div>
             </div>
             
             <!-- SQL Query View -->
@@ -357,6 +341,28 @@
                             <div class="distinct-values" id="distinctValues"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+            
+            <!-- Import Data View -->
+            <div id="importView" style="display:none;">
+                <div style="flex:1; overflow-y:auto; padding:16px;">
+                    <div class="upload-zone" id="uploadZone" style="margin-bottom:16px;">
+                        <h2>Drop Excel files here or click to browse</h2>
+                        <p>Supports .xlsx files &bull; Load multiple months to compare</p>
+                        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv">
+                    </div>
+                    <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+                        <a class="data-files-link" href="https://empyreansolutions.sharepoint.com/Shared%20Documents/Forms/AllItems.aspx?id=%2FShared%20Documents%2FExplorer%2FDemo%20System%2FClaude%20Fake%20Data%2FData%20Set&viewid=bf15d09f%2D66f3%2D4494%2D81f3%2D0cbf31c9069b" target="_blank" rel="noopener">Download Data Files from SharePoint</a>
+                        <button class="btn btn-danger" id="deleteAllBtn" style="display:none;" onclick="deleteAllData()">Delete All Data</button>
+                        <span id="storageInfo" style="font-size:0.78rem; color:var(--gray-500); margin-left:auto;"></span>
+                    </div>
+                    <h3 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--gray-500); margin-bottom:8px;">Loaded Files</h3>
+                    <div class="file-badges" id="fileBadges" style="padding:0; margin-bottom:16px;">
+                        <span style="font-size:0.8rem; color:var(--gray-400);">No files loaded yet</span>
+                    </div>
+                    <h3 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--gray-500); margin-bottom:8px;">Tables</h3>
+                    <div id="importTableSummary" style="font-size:0.8rem; color:var(--gray-400);">No tables loaded</div>
                 </div>
             </div>
         </div>
@@ -488,6 +494,29 @@
         }
     }
 
+    function renderImportSummary() {
+        const container = document.getElementById('importTableSummary');
+        const tableNames = Object.keys(state.tables).sort();
+        if (tableNames.length === 0) {
+            container.innerHTML = '<span style="color:var(--gray-400);">No tables loaded</span>';
+            return;
+        }
+        container.innerHTML = '<div style="border:1px solid var(--gray-200); border-radius:8px; overflow:hidden; box-shadow:var(--shadow);">' +
+            '<table style="width:100%; border-collapse:collapse; font-size:0.8rem;">' +
+            '<thead><tr><th style="background:var(--navy); color:white; padding:6px 12px; text-align:left; border:1px solid rgba(255,255,255,.15);">Table</th>' +
+            '<th style="background:var(--navy); color:white; padding:6px 12px; text-align:right; border:1px solid rgba(255,255,255,.15);">Rows</th>' +
+            '<th style="background:var(--navy); color:white; padding:6px 12px; text-align:right; border:1px solid rgba(255,255,255,.15);">Columns</th>' +
+            '<th style="background:var(--navy); color:white; padding:6px 12px; text-align:left; border:1px solid rgba(255,255,255,.15);">Source File</th></tr></thead><tbody>' +
+            tableNames.map(t => {
+                const info = state.tables[t];
+                return `<tr><td style="padding:5px 12px; border:1px solid var(--gray-200); font-weight:600; color:var(--navy);">${t}</td>` +
+                    `<td style="padding:5px 12px; border:1px solid var(--gray-200); text-align:right;">${info.rowCount.toLocaleString()}</td>` +
+                    `<td style="padding:5px 12px; border:1px solid var(--gray-200); text-align:right;">${info.columns.length}</td>` +
+                    `<td style="padding:5px 12px; border:1px solid var(--gray-200); color:var(--gray-500); font-size:0.75rem;">${info.sourceFile || ''}</td></tr>`;
+            }).join('') +
+            '</tbody></table></div>';
+    }
+
     async function deleteAllData() {
         if (!confirm('Delete all loaded data from browser storage? This cannot be undone.')) return;
         for (const name of Object.keys(state.tables)) {
@@ -497,14 +526,6 @@
         state.files = [];
         state.lastResult = null;
         await clearStorage();
-        uploadZone.classList.remove('minimized');
-        document.getElementById('uploadRow').classList.remove('minimized');
-        document.getElementById('querySection').style.display = 'none';
-        document.getElementById('viewTabs').style.display = 'none';
-        document.getElementById('queryView').style.display = '';
-        document.getElementById('explorerView').style.display = 'none';
-        document.getElementById('dictionaryView').style.display = 'none';
-        document.getElementById('savedView').style.display = 'none';
         refreshUI();
         updateStorageInfo();
         clearResults();
@@ -558,6 +579,7 @@
             refreshUI();
             await saveToStorage();
             updateStorageInfo();
+            switchView('query');
         } finally {
             hideLoading();
         }
@@ -629,19 +651,19 @@
     }
 
     function refreshUI() {
-        // Minimize upload zone
+        document.getElementById('querySection').style.display = '';
+
+        // File badges in import view
+        const badges = document.getElementById('fileBadges');
         if (state.files.length > 0) {
-            uploadZone.classList.add('minimized');
-            document.getElementById('uploadRow').classList.add('minimized');
-            document.getElementById('querySection').style.display = '';
-            document.getElementById('viewTabs').style.display = '';
+            badges.innerHTML = state.files.map((f, i) => 
+                `<span class="file-badge">${f}<span class="remove-file" onclick="removeFile(${i})">&times;</span></span>`
+            ).join('');
+        } else {
+            badges.innerHTML = '<span style="font-size:0.8rem; color:var(--gray-400);">No files loaded yet</span>';
         }
 
-        // File badges
-        const badges = document.getElementById('fileBadges');
-        badges.innerHTML = state.files.map((f, i) => 
-            `<span class="file-badge">${f}<span class="remove-file" onclick="removeFile(${i})">&times;</span></span>`
-        ).join('');
+        renderImportSummary();
 
         // Sidebar table list
         const tableList = document.getElementById('table-list');
@@ -950,7 +972,7 @@
     // --- View switching ---
     function switchView(view) {
         document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
-        ['queryView','explorerView','dictionaryView','savedView'].forEach(id => document.getElementById(id).style.display = 'none');
+        ['queryView','explorerView','dictionaryView','savedView','importView'].forEach(id => document.getElementById(id).style.display = 'none');
         if (view !== 'query' && window.location.hash) {
             history.replaceState(null, '', window.location.pathname + window.location.search);
         }
@@ -972,6 +994,10 @@
             tabs[3].classList.add('active');
             populateSavedFilters();
             renderSavedQueries();
+        } else if (view === 'import') {
+            document.getElementById('importView').style.display = '';
+            tabs[4].classList.add('active');
+            renderImportSummary();
         }
     }
 
@@ -1678,7 +1704,12 @@
     }
 
     // Restore data from browser storage on page load, then handle deep-links
-    restoreSession().then(() => handleDeepLink());
+    restoreSession().then(() => {
+        if (Object.keys(state.tables).length === 0 && !window.location.hash) {
+            switchView('import');
+        }
+        handleDeepLink();
+    });
 
     async function handleDeepLink() {
         const hash = window.location.hash;
