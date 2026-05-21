@@ -409,7 +409,7 @@
                         <button class="btn btn-danger" id="deleteAllBtn" onclick="deleteAllData()">Delete All Data</button>
                         <span id="storageInfo" style="font-size:0.78rem; color:var(--gray-500); margin-left:auto;"></span>
                     </div>
-                    <h3 style="font-size:0.85rem; font-weight:600; color:var(--navy); margin-bottom:10px;">Loaded Files &amp; Tables</h3>
+                    <h3 style="font-size:0.85rem; font-weight:600; color:var(--navy); margin-bottom:10px;">Imported Files</h3>
                     <div id="importFileTable">
                         <div style="font-size:0.8rem; color:var(--gray-400); padding:12px;">No files loaded yet</div>
                     </div>
@@ -568,41 +568,52 @@
     function renderImportFileTable() {
         const container = document.getElementById('importFileTable');
         if (!container) return;
-        const tableNames = Object.keys(state.tables).sort();
-        if (tableNames.length === 0) {
+        if (state.files.length === 0) {
             container.innerHTML = '<div style="font-size:0.8rem; color:var(--gray-400); padding:12px;">No files loaded yet</div>';
             return;
         }
+
         let html = '<div style="border:1px solid var(--gray-200); border-radius:8px; overflow:hidden; box-shadow:var(--shadow);">' +
             '<table class="import-file-table"><thead><tr>' +
-            '<th>Table</th><th style="text-align:right;">Rows</th><th style="text-align:right;">Columns</th><th>Source File</th><th style="text-align:center;">Actions</th>' +
+            '<th>File Name</th><th style="text-align:right;">Tables</th><th style="text-align:right;">Total Rows</th><th>Tables Loaded</th><th style="text-align:center;">Actions</th>' +
             '</tr></thead><tbody>';
-        for (const t of tableNames) {
-            const info = state.tables[t];
+
+        for (const fileName of state.files) {
+            const fileTables = Object.entries(state.tables)
+                .filter(([, meta]) => meta.sourceFile === fileName)
+                .sort(([a], [b]) => a.localeCompare(b));
+            const tableCount = fileTables.length;
+            const totalRows = fileTables.reduce((s, [, meta]) => s + meta.rowCount, 0);
+            const tableList = fileTables.map(([name, meta]) =>
+                `${name} (${meta.rowCount.toLocaleString()})`
+            ).join(', ');
+            const safeFileName = escHtml(fileName).replace(/'/g, "\\'");
+
             html += `<tr>` +
-                `<td style="font-weight:600; color:var(--navy);">${escHtml(t)}</td>` +
-                `<td class="num">${info.rowCount.toLocaleString()}</td>` +
-                `<td class="num">${info.columns.length}</td>` +
-                `<td style="font-size:0.75rem; color:var(--gray-500);">${escHtml(info.sourceFile || '')}</td>` +
-                `<td style="text-align:center;"><button class="btn btn-sm btn-danger" onclick="deleteTable('${escHtml(t)}')">Delete</button></td>` +
+                `<td style="font-weight:600; color:var(--navy);">${escHtml(fileName)}</td>` +
+                `<td class="num">${tableCount}</td>` +
+                `<td class="num">${totalRows.toLocaleString()}</td>` +
+                `<td style="font-size:0.75rem; color:var(--gray-500);">${tableList}</td>` +
+                `<td style="text-align:center;"><button class="btn btn-sm btn-danger" onclick="deleteFile('${safeFileName}')">Delete</button></td>` +
                 `</tr>`;
         }
         html += '</tbody></table></div>';
         container.innerHTML = html;
     }
 
-    async function deleteTable(tableName) {
-        if (!confirm('Delete table "' + tableName + '" from browser storage?')) return;
-        alasql('DROP TABLE IF EXISTS ' + tableName);
-        delete state.tables[tableName];
-        if (Object.keys(state.tables).length === 0) {
-            state.files = [];
+    async function deleteFile(fileName) {
+        if (!confirm('Delete "' + fileName + '" and all its tables from browser storage?')) return;
+        const tablesToDrop = Object.keys(state.tables).filter(t => state.tables[t].sourceFile === fileName);
+        for (const t of tablesToDrop) {
+            alasql('DROP TABLE IF EXISTS ' + t);
+            delete state.tables[t];
         }
+        state.files = state.files.filter(f => f !== fileName);
         await saveToStorage();
         refreshUI();
         updateStorageInfo();
         renderImportFileTable();
-        showToast('Deleted table: "' + tableName + '"');
+        showToast('Deleted: "' + fileName + '" (' + tablesToDrop.length + ' table' + (tablesToDrop.length !== 1 ? 's' : '') + ')');
     }
 
     async function deleteAllData() {
