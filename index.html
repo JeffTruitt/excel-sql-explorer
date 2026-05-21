@@ -404,7 +404,7 @@
                     </div>
                     <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
                         <a class="data-files-link" href="https://empyreansolutions.sharepoint.com/Shared%20Documents/Forms/AllItems.aspx?id=%2FShared%20Documents%2FExplorer%2FDemo%20System%2FClaude%20Fake%20Data%2FData%20Set&viewid=bf15d09f%2D66f3%2D4494%2D81f3%2D0cbf31c9069b" target="_blank" rel="noopener">Download Data Files from SharePoint</a>
-                        <button class="btn btn-danger" id="deleteAllBtn" style="display:none;" onclick="deleteAllData()">Delete All Data</button>
+                        <button class="btn btn-danger" id="deleteAllBtn" onclick="deleteAllData()">Delete All Data</button>
                         <span id="storageInfo" style="font-size:0.78rem; color:var(--gray-500); margin-left:auto;"></span>
                     </div>
                     <h3 style="font-size:0.85rem; font-weight:600; color:var(--navy); margin-bottom:10px;">Loaded Files &amp; Tables</h3>
@@ -532,13 +532,16 @@
     }
 
     async function updateStorageInfo() {
+        const btn = document.getElementById('deleteAllBtn');
         if (state.files.length > 0) {
             const totalRows = Object.values(state.tables).reduce((s, t) => s + t.rowCount, 0);
             document.getElementById('storageInfo').textContent = `Saved in browser (${totalRows.toLocaleString()} rows)`;
-            document.getElementById('deleteAllBtn').style.display = '';
+            btn.disabled = false;
+            btn.style.opacity = '';
         } else {
             document.getElementById('storageInfo').textContent = '';
-            document.getElementById('deleteAllBtn').style.display = 'none';
+            btn.disabled = true;
+            btn.style.opacity = '0.4';
         }
     }
 
@@ -1078,6 +1081,7 @@
             document.getElementById('importView').style.display = '';
             tabs[5].classList.add('active');
             renderImportFileTable();
+            updateStorageInfo();
         }
     }
 
