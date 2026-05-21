@@ -519,6 +519,20 @@
             state.files = saved.files || [];
             for (const [name, { meta, rows }] of Object.entries(saved.tables)) {
                 if (!rows || rows.length === 0) continue;
+                // Normalize any ISO date strings to YYYY-MM-DD format
+                const dateCols = meta.types.map((t, i) => t === 'date' ? meta.columns[i] : null).filter(Boolean);
+                if (dateCols.length > 0) {
+                    for (const row of rows) {
+                        for (const col of dateCols) {
+                            if (row[col] && typeof row[col] === 'string') {
+                                const d = new Date(row[col]);
+                                if (!isNaN(d)) {
+                                    row[col] = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+                                }
+                            }
+                        }
+                    }
+                }
                 alasql(`CREATE TABLE ${name}`);
                 alasql.tables[name].data = rows;
                 state.tables[name] = meta;
@@ -677,6 +691,7 @@
             const ws = wb.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(ws, { defval: null });
             if (json.length === 0) continue;
+            normalizeDates(json);
 
             const tableName = sanitizeTableName(sheetName);
             
@@ -905,6 +920,32 @@
         return result;
     }
 
+    function normalizeDateLiterals(sql) {
+        // Convert M/D/YYYY or MM/DD/YYYY date strings to YYYY-MM-DD for comparison
+        return sql.replace(/'(\d{1,2})\/(\d{1,2})\/(\d{4})'/g, (match, m, d, y) => {
+            return "'" + y + '-' + m.padStart(2,'0') + '-' + d.padStart(2,'0') + "'";
+        });
+    }
+
+    function normalizeDates(rows) {
+        if (!rows || rows.length === 0) return rows;
+        const cols = Object.keys(rows[0]);
+        const dateCols = cols.filter(c => {
+            const v = rows.find(r => r[c] != null)?.[c];
+            return v instanceof Date;
+        });
+        if (dateCols.length === 0) return rows;
+        for (const row of rows) {
+            for (const col of dateCols) {
+                if (row[col] instanceof Date) {
+                    const d = row[col];
+                    row[col] = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+                }
+            }
+        }
+        return rows;
+    }
+
     // Query execution
     let queryRunning = false;
     function runQuery() {
@@ -922,7 +963,7 @@
         setTimeout(() => {
             const start = performance.now();
             try {
-                const fixedSql = fixIdentifierCasing(sql);
+                const fixedSql = normalizeDateLiterals(fixIdentifierCasing(sql));
                 const result = alasql(fixedSql);
                 const elapsed = (performance.now() - start).toFixed(1);
                 document.getElementById('queryTime').textContent = `${elapsed}ms`;
