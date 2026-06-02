@@ -26,6 +26,21 @@
         .sidebar-nav-link { padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 500; color: var(--gray-700); display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
         .sidebar-nav-link:hover { background: var(--blue-light); color: var(--blue); }
         
+        /* Collapsible sidebar sections */
+        .sidebar-section-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 0 8px; margin: 12px 0 6px; user-select: none; }
+        .sidebar-section-header h3 { margin: 0; }
+        .sidebar-section-header .chevron { font-size: 0.65rem; color: var(--gray-400); transition: transform 0.2s; }
+        .sidebar-section-header .chevron.collapsed { transform: rotate(-90deg); }
+        .sidebar-section-body { overflow: hidden; transition: max-height 0.25s ease; }
+        .sidebar-section-body.collapsed { max-height: 0 !important; }
+        
+        /* Recently Run queries */
+        .recent-query-item { padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 0.72rem; font-family: 'Cascadia Code', monospace; color: var(--gray-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.12s; border-bottom: 1px solid var(--gray-100); }
+        .recent-query-item:last-child { border-bottom: none; }
+        .recent-query-item:hover { background: var(--blue-light); color: var(--blue); }
+        .recent-query-item .recent-time { font-size: 0.6rem; color: var(--gray-400); font-family: 'Inter', sans-serif; display: block; margin-bottom: 1px; }
+        .recent-query-item .recent-sql { display: block; overflow: hidden; text-overflow: ellipsis; }
+        
         .table-item { padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; transition: background 0.15s; display: flex; justify-content: space-between; align-items: center; color: var(--gray-900); text-align: left; }
         .table-item:hover { background: var(--gray-100); }
         .table-item.active { background: var(--blue-light); color: var(--blue); }
@@ -33,10 +48,30 @@
         .column-list { padding: 2px 0 8px 20px; font-size: 0.75rem; color: var(--gray-700); text-align: left; }
         .column-list .col-item { padding: 2px 8px; border-radius: 3px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-align: left; }
         .column-list .col-item:hover { background: var(--gray-100); color: var(--gray-900); }
-        .col-type { font-size: 0.65rem; color: var(--gray-500); font-style: italic; flex-shrink: 0; margin-left: 6px; }
+        .col-meta { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: 6px; }
+        .col-sample { font-size: 0.6rem; color: var(--gray-400); font-family: 'Cascadia Code', monospace; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .col-type { font-size: 0.65rem; color: var(--gray-500); font-style: italic; flex-shrink: 0; }
+        
+        /* Query Guide */
+        .guide-panel { flex: 1; overflow-y: scroll; padding: 20px 24px; min-height: 0; }
+        .guide-panel h2 { font-size: 1.1rem; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+        .guide-panel h3 { font-size: 0.9rem; font-weight: 600; color: var(--navy); margin: 18px 0 8px; }
+        .guide-panel p, .guide-panel li { font-size: 0.82rem; color: var(--gray-700); line-height: 1.7; }
+        .guide-panel ul { padding-left: 20px; margin-bottom: 10px; }
+        .guide-panel code { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.78rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px; color: var(--blue); }
+        .guide-panel pre { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 8px; padding: 12px 16px; font-family: 'Cascadia Code', monospace; font-size: 0.78rem; color: var(--gray-700); overflow-x: auto; margin: 8px 0 14px; line-height: 1.6; }
+        .guide-section { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; box-shadow: var(--shadow); }
+        .guide-warn { background: var(--red-light); border: 1px solid var(--red); border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: #991b1b; margin: 8px 0; }
+        .guide-tip { background: var(--blue-light); border: 1px solid var(--blue); border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: #1e40af; margin: 8px 0; }
         
         /* Main area */
         .main { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+        
+        /* Force visible scrollbars on all scrollable panels */
+        .results-table-wrap, .preview-table-wrap, .saved-table-wrap, .guide-panel, .dict-panel { scrollbar-width: thin; scrollbar-color: var(--gray-300) transparent; }
+        .results-table-wrap::-webkit-scrollbar, .preview-table-wrap::-webkit-scrollbar, .saved-table-wrap::-webkit-scrollbar, .guide-panel::-webkit-scrollbar, .dict-panel::-webkit-scrollbar { width: 10px; height: 10px; }
+        .results-table-wrap::-webkit-scrollbar-thumb, .preview-table-wrap::-webkit-scrollbar-thumb, .saved-table-wrap::-webkit-scrollbar-thumb, .guide-panel::-webkit-scrollbar-thumb, .dict-panel::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 5px; }
+        .results-table-wrap::-webkit-scrollbar-track, .preview-table-wrap::-webkit-scrollbar-track, .saved-table-wrap::-webkit-scrollbar-track, .guide-panel::-webkit-scrollbar-track, .dict-panel::-webkit-scrollbar-track { background: var(--gray-50); }
         
         /* Upload zone */
         .upload-zone { padding: 32px; border: 2px dashed var(--gray-300); border-radius: var(--radius); text-align: center; transition: all 0.2s; cursor: pointer; background: white; }
@@ -70,6 +105,9 @@
         .file-badge { font-size: 0.75rem; background: var(--blue-light); color: var(--blue); padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 6px; font-weight: 500; }
         .file-badge .remove-file { cursor: pointer; opacity: 0.6; }
         .file-badge .remove-file:hover { opacity: 1; }
+        
+        /* View containers — must flex so results can scroll */
+        #queryView, #savedView, #explorerView, #dictionaryView, #guideView, #importView { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
         
         /* Query area */
         .query-section { padding: 0 16px; flex-shrink: 0; }
@@ -126,7 +164,18 @@
         .explorer-controls select { background: white; border: 1px solid var(--gray-300); color: var(--gray-900); padding: 6px 10px; border-radius: 6px; font-size: 0.82rem; outline: none; }
         .explorer-controls select:focus { border-color: var(--blue); }
         
-        .preview-table-wrap { flex: 1; overflow: auto; border: 1px solid var(--gray-200); border-radius: var(--radius); margin-bottom: 12px; box-shadow: var(--shadow); background: white; }
+        .preview-table-wrap { flex: 1; overflow: auto; border: 1px solid var(--gray-200); border-radius: var(--radius); margin-bottom: 12px; box-shadow: var(--shadow); background: white; min-height: 0; }
+        
+        /* Explorer column filters */
+        .explorer-filters { display: flex; gap: 4px; flex-shrink: 0; overflow-x: auto; padding: 6px 0; scrollbar-width: thin; }
+        .explorer-filters::-webkit-scrollbar { height: 6px; }
+        .explorer-filters::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+        .explorer-filter-col { display: flex; flex-direction: column; gap: 2px; min-width: 120px; max-width: 180px; flex-shrink: 0; }
+        .explorer-filter-col label { font-size: 0.65rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; font-weight: 600; }
+        .explorer-filter-col input { background: white; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 5px; font-size: 0.75rem; color: var(--gray-900); outline: none; width: 100%; }
+        .explorer-filter-col input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,.1); }
+        .explorer-filter-col input.has-value { border-color: var(--blue); background: var(--blue-light); }
+        .explorer-filter-actions { display: flex; align-items: flex-end; gap: 4px; flex-shrink: 0; padding-bottom: 1px; }
         .preview-table-wrap table th { cursor: pointer; position: relative; user-select: none; }
         .preview-table-wrap table th:hover { background: var(--gray-700); }
         .preview-table-wrap table th.selected-col { background: var(--blue); color: white; }
@@ -237,9 +286,23 @@
     
     <div class="layout">
         <div class="sidebar" id="sidebar">
-            <h3>Loaded Tables</h3>
-            <div id="table-list" class="empty-state" style="padding: 24px; font-size: 0.8rem;">
-                No data loaded yet
+            <div class="sidebar-section-header" onclick="toggleSidebarSection('tables')">
+                <h3>Loaded Tables</h3>
+                <span class="chevron" id="chevron-tables">&#9654;</span>
+            </div>
+            <div class="sidebar-section-body" id="section-tables">
+                <div id="table-list" class="empty-state" style="padding: 24px; font-size: 0.8rem;">
+                    No data loaded yet
+                </div>
+            </div>
+            <div class="sidebar-section-header" onclick="toggleSidebarSection('recent')" style="margin-top:8px;">
+                <h3>Recently Run</h3>
+                <span class="chevron" id="chevron-recent">&#9654;</span>
+            </div>
+            <div class="sidebar-section-body" id="section-recent">
+                <div id="recent-query-list" style="font-size:0.75rem; color:var(--gray-400); padding:6px 8px;">
+                    No queries run yet
+                </div>
             </div>
             <div style="margin-top:auto; padding-top:8px; border-top:1px solid var(--gray-200);">
                 <div class="sidebar-nav-link" onclick="switchView('import')">
@@ -257,6 +320,7 @@
                 <div class="view-tab" onclick="switchView('explorer')">Data Explorer</div>
                 <div class="view-tab" onclick="switchView('dictionary')">Data Dictionary</div>
                 <div class="view-tab" onclick="switchView('import')">Import Data</div>
+                <div class="view-tab" onclick="switchView('guide')">Query Guide</div>
             </div>
             
             <!-- SQL Query View -->
@@ -374,6 +438,7 @@
                         <span id="explorerInfo" style="font-size:0.75rem; color:#64748b;"></span>
                         <button class="btn btn-sm btn-secondary" onclick="explorerShowAll()" style="margin-left:auto;">Show All Rows</button>
                     </div>
+                    <div class="explorer-filters" id="explorerFilters" style="display:none;"></div>
                     <div class="preview-table-wrap" id="explorerPreview">
                         <div class="empty-state" style="padding:40px;">
                             <span>Select a table to preview its data</span>
@@ -412,6 +477,141 @@
                     <h3 style="font-size:0.85rem; font-weight:600; color:var(--navy); margin-bottom:10px;">Imported Files</h3>
                     <div id="importFileTable">
                         <div style="font-size:0.8rem; color:var(--gray-400); padding:12px;">No files loaded yet</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Guide View -->
+            <div id="guideView" style="display:none;">
+                <div class="guide-panel">
+                    <h2>Query Guide &mdash; AlaSQL Reference for Excel SQL Explorer</h2>
+                    <p>This guide covers the key rules for writing queries that work correctly in this app. Read this before writing any SQL &mdash; especially date filters and aggregation patterns.</p>
+
+                    <div class="guide-section">
+                        <h3>1. Date Filtering (Critical)</h3>
+                        <div class="guide-warn"><strong>Warning:</strong> Dates are normalized to <code>YYYY-MM-DD</code> strings (e.g. <code>2025-04-30</code>) on load and on restore from browser storage. However, the restore path may not always normalize every row. Simple equality can silently return 0 rows.</div>
+                        <p><strong>Recommended &mdash; always works:</strong></p>
+<pre>-- Option A: LIKE prefix match (handles any residual ISO variants)
+WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'
+
+-- Option B: Date-part extraction
+WHERE YEAR(AsOfDate) = 2025
+  AND MONTH(AsOfDate) = 4
+  AND DAY(AsOfDate) = 30</pre>
+                        <div class="guide-tip"><strong>Tip:</strong> Always run a diagnostic first to see what&rsquo;s actually stored:<br><code>SELECT DISTINCT AsOfDate FROM NMD ORDER BY AsOfDate</code></div>
+                        <p>If all dates show as <code>2025-04-30</code> (no time suffix), then <code>AsOfDate = '2025-04-30'</code> also works. But the <code>LIKE</code> pattern is the safest default.</p>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>2. NMD Footer Summary Row</h3>
+                        <p>NMD sheets contain a footer row with <code>NULL</code> InstrumentID and a CurrBook value equal to the sheet total. This will <strong>double your total</strong> if not excluded.</p>
+<pre>-- Always filter NMD like this:
+SELECT SUM(CurrBook) FROM NMD
+WHERE InstrumentID IS NOT NULL
+  AND CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>3. Multi-File Date Filtering</h3>
+                        <p>Loading multiple monthly files appends all months into one table. Always filter to a single date for aggregates/top-N so results match a single snapshot.</p>
+<pre>-- Without a date filter, you get ALL months combined:
+SELECT SUM(CurrBook) FROM LOAN  -- Returns sum across all loaded months!
+
+-- Always scope to one date:
+SELECT SUM(CurrBook) FROM LOAN
+WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>4. Numeric Casting</h3>
+                        <p>All columns are text by default. Cast before arithmetic, comparison, or ORDER BY:</p>
+<pre>SELECT ProductCode,
+       ROUND(CAST(SUM(CAST(CurrBook AS NUMBER)) AS NUMBER), 2) AS Total
+FROM NMD
+WHERE InstrumentID IS NOT NULL
+GROUP BY ProductCode
+ORDER BY CAST(SUM(CAST(CurrBook AS NUMBER)) AS NUMBER) DESC</pre>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>5. AlaSQL Limitations</h3>
+                        <ul>
+                            <li><strong>No CTEs</strong> &mdash; no <code>WITH</code> clause. Use <code>FROM</code>-clause subqueries instead.</li>
+                            <li><strong>No scalar subqueries</strong> &mdash; <code>SELECT (SELECT COUNT(*) ...) AS n</code> fails. Use <code>UNION ALL</code> or <code>FROM</code>-clause subqueries.</li>
+                            <li><strong>No aggregate joins</strong> &mdash; don&rsquo;t join to an aggregated subquery. Aggregate first in a <code>FROM</code>-clause subquery, then join.</li>
+                            <li><strong>No window functions</strong> &mdash; <code>ROW_NUMBER() OVER (...)</code> will error.</li>
+                            <li><strong>No <code>COUNT(DISTINCT col)</code></strong> &mdash; use <code>SELECT COUNT(*) FROM (SELECT DISTINCT col FROM t) d</code>.</li>
+                            <li><strong>No <code>NOT IN (subquery)</code></strong> &mdash; use <code>LEFT JOIN + IS NULL</code> instead.</li>
+                            <li><code>MIN()</code>/<code>MAX()</code> on string columns returns NULL in subqueries or GROUP BY.</li>
+                            <li>GROUP BY drops non-grouped string columns (returns NULL).</li>
+                        </ul>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>6. Supported Functions</h3>
+                        <p><strong>Works:</strong> SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY, JOIN, UNION ALL, SUM, COUNT, AVG, MIN, MAX, ROUND, COALESCE, CASE WHEN, LIKE, LIMIT, CAST, YEAR, MONTH, DAY</p>
+                        <p><strong>Does NOT work:</strong> DATEADD, DATEDIFF, TO_VARCHAR, LAST_DAY, GENERATOR, ROW_NUMBER, COUNT(DISTINCT), CTEs, scalar subqueries, correlated subqueries</p>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>7. Table &amp; Column Names</h3>
+                        <p>Table names come from Excel sheet names with spaces converted to <code>_</code> (e.g. <code>CML Cust</code> &rarr; <code>CML_Cust</code>). Names are <strong>case-sensitive</strong>.</p>
+                        <p>Expand a table in the sidebar to see its columns with types and sample values.</p>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>8. Common Query Patterns</h3>
+                        <h3 style="font-size:0.82rem; margin-top:10px;">Total CurrBook for NMD + TD (single month)</h3>
+<pre>SELECT 'NMD' AS Source,
+       SUM(CurrBook) AS TotalCurrBook,
+       COUNT(*) AS Records
+FROM NMD
+WHERE InstrumentID IS NOT NULL
+  AND CAST(AsOfDate AS STRING) LIKE '2025-04-30%'
+
+UNION ALL
+
+SELECT 'TD' AS Source,
+       SUM(CurrBook) AS TotalCurrBook,
+       COUNT(*) AS Records
+FROM TD
+WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
+
+                        <h3 style="font-size:0.82rem; margin-top:10px;">Top-N Loans with Customer Name</h3>
+<pre>SELECT COALESCE(c.CustomerName, r.CustomerName) AS CustomerName,
+       l.CurrBook, l.CustomerID, l.InstrumentID
+FROM LOAN l
+LEFT JOIN CML_Cust c ON l.CustomerID = c.CustomerID
+LEFT JOIN RTL_Cust r ON l.CustomerID = r.CustomerID
+WHERE CAST(l.AsOfDate AS STRING) LIKE '2025-04-30%'
+ORDER BY CAST(l.CurrBook AS NUMBER) DESC
+LIMIT 10</pre>
+
+                        <h3 style="font-size:0.82rem; margin-top:10px;">Row Count / Shape Check</h3>
+<pre>SELECT 'DISTINCT_INSTRUMENTS' AS METRIC, COUNT(*) AS VALUE
+FROM (SELECT DISTINCT InstrumentID
+      FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%') d
+UNION ALL
+SELECT 'DISTINCT_CUSTOMERS', COUNT(*)
+FROM (SELECT DISTINCT CustomerID
+      FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%') d
+UNION ALL
+SELECT 'TOTAL_ROWS', COUNT(*)
+FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>9. Customer Joins</h3>
+                        <ul>
+                            <li><code>CML_Cust</code> and <code>RTL_Cust</code> are clean 1:1 lookup tables. Use a plain LEFT JOIN &mdash; no dedup needed.</li>
+                            <li>CustomerID is prefixed <code>CML_</code> or <code>RTL_</code>. LEFT JOIN to both, then <code>COALESCE(c.CustomerName, r.CustomerName)</code>.</li>
+                            <li><code>INVEST</code>, <code>BORR</code>, and <code>GL</code> have no CustomerID &mdash; they cannot join to customers.</li>
+                        </ul>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>10. Non-Queryable Tabs</h3>
+                        <p><code>Customer_360</code> and <code>Dimension_View</code> are interactive lookup sheets, not flat data. Their row 1 is a title string, not column headers. <strong>Never query them.</strong></p>
                     </div>
                 </div>
             </div>
@@ -533,6 +733,18 @@
                 }
                 alasql(`CREATE TABLE ${name}`);
                 alasql.tables[name].data = rows;
+                if (!meta.samples && rows.length > 0) {
+                    meta.samples = meta.columns.map(col => {
+                        for (const r of rows.slice(0, 20)) { if (r[col] != null) return String(r[col]).slice(0, 28); }
+                        return null;
+                    });
+                }
+                if (!meta.sourceFiles && meta.sourceFile) {
+                    meta.sourceFiles = [meta.sourceFile];
+                }
+                if (!meta.rowsByFile && meta.sourceFile) {
+                    meta.rowsByFile = { [meta.sourceFile]: meta.rowCount };
+                }
                 state.tables[name] = meta;
             }
             refreshUI();
@@ -576,13 +788,22 @@
 
         for (const fileName of state.files) {
             const fileTables = Object.entries(state.tables)
-                .filter(([, meta]) => meta.sourceFile === fileName)
+                .filter(([, meta]) => {
+                    if (meta.sourceFiles) return meta.sourceFiles.includes(fileName);
+                    return meta.sourceFile === fileName;
+                })
                 .sort(([a], [b]) => a.localeCompare(b));
             const tableCount = fileTables.length;
-            const totalRows = fileTables.reduce((s, [, meta]) => s + meta.rowCount, 0);
-            const tableList = fileTables.map(([name, meta]) =>
-                `${name} (${meta.rowCount.toLocaleString()})`
-            ).join(', ');
+            const totalRows = fileTables.reduce((s, [name, meta]) => {
+                if (meta.rowsByFile && meta.rowsByFile[fileName] != null) return s + meta.rowsByFile[fileName];
+                if (meta.sourceFile === fileName) return s + meta.rowCount;
+                return s;
+            }, 0);
+            const tableList = fileTables.map(([name, meta]) => {
+                const rows = meta.rowsByFile && meta.rowsByFile[fileName] != null
+                    ? meta.rowsByFile[fileName] : meta.rowCount;
+                return `${name} (${rows.toLocaleString()})`;
+            }).join(', ');
             const safeFileName = escHtml(fileName).replace(/'/g, "\\'");
 
             html += `<tr>` +
@@ -598,18 +819,35 @@
     }
 
     async function deleteFile(fileName) {
-        if (!confirm('Delete "' + fileName + '" and all its tables from browser storage?')) return;
-        const tablesToDrop = Object.keys(state.tables).filter(t => state.tables[t].sourceFile === fileName);
-        for (const t of tablesToDrop) {
-            alasql('DROP TABLE IF EXISTS ' + t);
-            delete state.tables[t];
+        if (!confirm('Delete "' + fileName + '" and its data from browser storage?')) return;
+        let tablesAffected = 0;
+        for (const [t, meta] of Object.entries(state.tables)) {
+            const files = meta.sourceFiles || [meta.sourceFile];
+            if (!files.includes(fileName)) continue;
+            tablesAffected++;
+            if (files.length <= 1) {
+                alasql('DROP TABLE IF EXISTS ' + t);
+                delete state.tables[t];
+            } else {
+                const remaining = alasql(`SELECT * FROM ${t}`).filter(row => {
+                    if (row._sourceFile) return row._sourceFile !== fileName;
+                    return true;
+                });
+                meta.sourceFiles = files.filter(f => f !== fileName);
+                if (meta.sourceFile === fileName) meta.sourceFile = meta.sourceFiles[0] || '';
+                delete meta.rowsByFile[fileName];
+                alasql(`DROP TABLE IF EXISTS ${t}`);
+                alasql(`CREATE TABLE ${t}`);
+                alasql.tables[t].data = remaining;
+                meta.rowCount = remaining.length;
+            }
         }
         state.files = state.files.filter(f => f !== fileName);
         await saveToStorage();
         refreshUI();
         updateStorageInfo();
         renderImportFileTable();
-        showToast('Deleted: "' + fileName + '" (' + tablesToDrop.length + ' table' + (tablesToDrop.length !== 1 ? 's' : '') + ')');
+        showToast('Deleted: "' + fileName + '"');
     }
 
     async function deleteAllData() {
@@ -630,8 +868,63 @@
     const state = {
         tables: {},
         files: [],
-        lastResult: null
+        lastResult: null,
+        queryHistory: []
     };
+
+    const MAX_QUERY_HISTORY = 50;
+
+    // --- Collapsible sidebar sections ---
+    function toggleSidebarSection(id) {
+        const body = document.getElementById('section-' + id);
+        const chevron = document.getElementById('chevron-' + id);
+        const isCollapsed = body.classList.contains('collapsed');
+        if (isCollapsed) {
+            body.classList.remove('collapsed');
+            chevron.classList.remove('collapsed');
+        } else {
+            body.classList.add('collapsed');
+            chevron.classList.add('collapsed');
+        }
+    }
+
+    // --- Query history ---
+    function addQueryToHistory(sql, elapsed, rowCount) {
+        const existing = state.queryHistory.findIndex(q => q.sql === sql);
+        if (existing !== -1) state.queryHistory.splice(existing, 1);
+        state.queryHistory.unshift({
+            sql,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            elapsed,
+            rowCount
+        });
+        if (state.queryHistory.length > MAX_QUERY_HISTORY) state.queryHistory.length = MAX_QUERY_HISTORY;
+        renderRecentQueries();
+    }
+
+    function renderRecentQueries() {
+        const container = document.getElementById('recent-query-list');
+        if (state.queryHistory.length === 0) {
+            container.innerHTML = '<div style="font-size:0.75rem; color:var(--gray-400); padding:6px 8px;">No queries run yet</div>';
+            return;
+        }
+        container.innerHTML = state.queryHistory.map((q, i) => {
+            const preview = q.sql.replace(/\s+/g, ' ').slice(0, 80);
+            const info = q.rowCount != null ? `${q.rowCount} rows, ${q.elapsed}ms` : `${q.elapsed}ms`;
+            return `<div class="recent-query-item" onclick="loadRecentQuery(${i})" title="${q.sql.replace(/"/g, '&quot;').replace(/\s+/g, ' ')}">` +
+                `<span class="recent-time">${q.time} &middot; ${info}</span>` +
+                `<span class="recent-sql">${preview}</span>` +
+                `</div>`;
+        }).join('');
+    }
+
+    function loadRecentQuery(idx) {
+        const q = state.queryHistory[idx];
+        if (!q) return;
+        document.getElementById('sqlInput').value = q.sql;
+        switchView('query');
+        showToast('Loaded recent query');
+    }
 
     // Upload handling
     const uploadZone = document.getElementById('uploadZone');
@@ -705,20 +998,39 @@
             const tableName = sanitizeTableName(sheetName);
             
             if (alasql.tables[tableName]) {
-                // Table exists from a different file — append
                 const existing = alasql(`SELECT * FROM ${tableName}`);
                 const combined = existing.concat(json);
                 alasql(`DROP TABLE IF EXISTS ${tableName}`);
                 alasql(`CREATE TABLE ${tableName}`);
                 alasql.tables[tableName].data = combined;
                 state.tables[tableName].rowCount = combined.length;
+                if (!state.tables[tableName].sourceFiles) {
+                    state.tables[tableName].sourceFiles = [state.tables[tableName].sourceFile];
+                }
+                if (!state.tables[tableName].sourceFiles.includes(file.name)) {
+                    state.tables[tableName].sourceFiles.push(file.name);
+                }
+                if (!state.tables[tableName].rowsByFile) {
+                    state.tables[tableName].rowsByFile = {};
+                }
+                state.tables[tableName].rowsByFile[file.name] = json.length;
             } else {
                 alasql(`CREATE TABLE ${tableName}`);
                 alasql.tables[tableName].data = json;
                 
                 const columns = Object.keys(json[0]);
                 const types = columns.map(col => inferType(json, col));
-                state.tables[tableName] = { columns, types, rowCount: json.length, sourceFile: file.name };
+                const samples = columns.map(col => {
+                    for (const r of json.slice(0, 20)) { if (r[col] != null) return String(r[col]).slice(0, 28); }
+                    return null;
+                });
+                state.tables[tableName] = {
+                    columns, types, rowCount: json.length,
+                    sourceFile: file.name,
+                    sourceFiles: [file.name],
+                    rowsByFile: { [file.name]: json.length },
+                    samples
+                };
             }
         }
         setStatus(`Loaded: ${file.name}${isDuplicate ? ' (replaced)' : ''}`);
@@ -770,7 +1082,10 @@
                     <span class="row-count">${info.rowCount.toLocaleString()}</span>
                 </div>
                 <div class="column-list" id="cols_${t}" style="display:none;">
-                    ${info.columns.map((c, i) => `<div class="col-item" onclick="insertColumn('${t}', '${c}')">${c}<span class="col-type">${info.types[i]}</span></div>`).join('')}
+                    ${info.columns.map((c, i) => {
+                        const sample = info.samples && info.samples[i] ? `<span class="col-sample" title="Sample: ${info.samples[i].replace(/"/g,'&quot;')}">${info.samples[i]}</span>` : '';
+                        return `<div class="col-item" onclick="insertColumn('${t}', '${c}')">${c}<span class="col-meta">${sample}<span class="col-type">${info.types[i]}</span></span></div>`;
+                    }).join('')}
                 </div>`;
         }).join('');
 
@@ -1003,12 +1318,15 @@
                     state.lastResult = result;
                     renderResults(result);
                     document.getElementById('resultInfo').textContent = `${result.length.toLocaleString()} rows returned`;
+                    addQueryToHistory(sql, elapsed, result.length);
                 } else if (Array.isArray(result) && result.length === 0) {
                     document.getElementById('resultsWrap').innerHTML = '<div class="success-msg">Query executed successfully. 0 rows returned.</div>';
                     document.getElementById('resultInfo').textContent = '';
+                    addQueryToHistory(sql, elapsed, 0);
                 } else {
                     document.getElementById('resultsWrap').innerHTML = `<div class="success-msg">Result: ${JSON.stringify(result)}</div>`;
                     document.getElementById('resultInfo').textContent = '';
+                    addQueryToHistory(sql, elapsed, null);
                 }
             } catch (err) {
                 document.getElementById('resultsWrap').innerHTML = `<div class="error-msg"><strong>Error:</strong> ${err.message}</div>`;
@@ -1121,7 +1439,7 @@
     // --- View switching ---
     function switchView(view) {
         document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
-        ['queryView','savedView','pagesView','explorerView','dictionaryView','importView'].forEach(id => {
+        ['queryView','savedView','pagesView','explorerView','dictionaryView','importView','guideView'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
@@ -1154,6 +1472,9 @@
             tabs[5].classList.add('active');
             renderImportFileTable();
             updateStorageInfo();
+        } else if (view === 'guide') {
+            document.getElementById('guideView').style.display = '';
+            tabs[6].classList.add('active');
         }
     }
 
@@ -1162,7 +1483,9 @@
         currentTable: null,
         currentColumn: null,
         distinctValues: [],
-        selectedValues: new Set()
+        selectedValues: new Set(),
+        filters: {},
+        filterDebounce: null
     };
 
     function populateExplorerDropdown() {
@@ -1178,26 +1501,103 @@
         if (!tableName) {
             document.getElementById('explorerPreview').innerHTML = '<div class="empty-state" style="padding:40px;"><span>Select a table to preview its data</span></div>';
             document.getElementById('distinctPanel').style.display = 'none';
+            document.getElementById('explorerFilters').style.display = 'none';
             return;
         }
         explorerState.currentTable = tableName;
         explorerState.currentColumn = null;
+        explorerState.filters = {};
         document.getElementById('distinctPanel').style.display = 'none';
 
-        const rows = alasql(`SELECT * FROM ${tableName} LIMIT 100`);
+        buildExplorerFilters(tableName);
+        runExplorerQuery(100);
+    }
+
+    function buildExplorerFilters(tableName) {
         const info = state.tables[tableName];
-        document.getElementById('explorerInfo').textContent = `Showing first ${Math.min(100, info.rowCount)} of ${info.rowCount.toLocaleString()} rows • Click a column header for distinct values`;
-        
+        const container = document.getElementById('explorerFilters');
+        container.style.display = '';
+
+        let html = '';
+        for (let i = 0; i < info.columns.length; i++) {
+            const col = info.columns[i];
+            const listId = `ef_list_${i}`;
+            html += `<div class="explorer-filter-col">` +
+                `<label title="${col}">${col}</label>` +
+                `<input type="text" list="${listId}" placeholder="Filter..." ` +
+                `data-col="${col}" oninput="onExplorerFilterInput(this)" onfocus="populateFilterDatalist(this, '${tableName}', '${col}', '${listId}')">` +
+                `<datalist id="${listId}"></datalist>` +
+                `</div>`;
+        }
+        html += `<div class="explorer-filter-actions">` +
+            `<button class="btn btn-sm btn-secondary" onclick="clearExplorerFilters()" title="Clear all filters">Clear</button>` +
+            `</div>`;
+        container.innerHTML = html;
+    }
+
+    function populateFilterDatalist(input, tableName, col, listId) {
+        const dl = document.getElementById(listId);
+        if (dl.childElementCount > 0) return;
+        try {
+            const vals = alasql(`SELECT DISTINCT [${col}] AS v FROM ${tableName} WHERE [${col}] IS NOT NULL ORDER BY [${col}] LIMIT 200`);
+            dl.innerHTML = vals.map(r => `<option value="${String(r.v).replace(/"/g, '&quot;')}">`).join('');
+        } catch {}
+    }
+
+    function onExplorerFilterInput(input) {
+        const col = input.dataset.col;
+        const val = input.value.trim();
+        if (val) {
+            explorerState.filters[col] = val;
+            input.classList.add('has-value');
+        } else {
+            delete explorerState.filters[col];
+            input.classList.remove('has-value');
+        }
+        clearTimeout(explorerState.filterDebounce);
+        explorerState.filterDebounce = setTimeout(() => runExplorerQuery(500), 200);
+    }
+
+    function clearExplorerFilters() {
+        explorerState.filters = {};
+        document.querySelectorAll('.explorer-filter-col input').forEach(inp => {
+            inp.value = '';
+            inp.classList.remove('has-value');
+        });
+        runExplorerQuery(100);
+    }
+
+    function buildExplorerWhereClause() {
+        const parts = [];
+        for (const [col, val] of Object.entries(explorerState.filters)) {
+            const escaped = val.replace(/'/g, "''");
+            parts.push(`CAST([${col}] AS STRING) LIKE '%${escaped}%'`);
+        }
+        return parts.length > 0 ? ' WHERE ' + parts.join(' AND ') : '';
+    }
+
+    function runExplorerQuery(limit) {
+        const tableName = explorerState.currentTable;
+        if (!tableName) return;
+        const where = buildExplorerWhereClause();
+        const limitClause = limit ? ` LIMIT ${limit}` : '';
+        const rows = alasql(`SELECT * FROM ${tableName}${where}${limitClause}`);
+        const total = alasql(`SELECT COUNT(*) AS c FROM ${tableName}${where}`)[0].c;
+        const info = state.tables[tableName];
+        const activeFilters = Object.keys(explorerState.filters).length;
+        let infoText = limit && total > limit
+            ? `Showing first ${rows.length.toLocaleString()} of ${total.toLocaleString()} rows`
+            : `Showing ${total.toLocaleString()} rows`;
+        if (activeFilters > 0) infoText += ` (filtered from ${info.rowCount.toLocaleString()})`;
+        infoText += ' • Click a column header for distinct values';
+        document.getElementById('explorerInfo').textContent = infoText;
         renderExplorerPreview(rows, tableName);
     }
 
     function explorerShowAll() {
         const tableName = explorerState.currentTable;
         if (!tableName) return;
-        const rows = alasql(`SELECT * FROM ${tableName}`);
-        const info = state.tables[tableName];
-        document.getElementById('explorerInfo').textContent = `Showing all ${info.rowCount.toLocaleString()} rows • Click a column header for distinct values`;
-        renderExplorerPreview(rows, tableName);
+        runExplorerQuery(null);
     }
 
     function renderExplorerPreview(rows, tableName) {
