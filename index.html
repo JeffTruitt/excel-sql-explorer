@@ -166,16 +166,29 @@
         
         .preview-table-wrap { flex: 1; overflow: auto; border: 1px solid var(--gray-200); border-radius: var(--radius); margin-bottom: 12px; box-shadow: var(--shadow); background: white; min-height: 0; }
         
-        /* Explorer column filters */
-        .explorer-filters { display: flex; gap: 4px; flex-shrink: 0; overflow-x: auto; padding: 6px 0; scrollbar-width: thin; }
-        .explorer-filters::-webkit-scrollbar { height: 6px; }
-        .explorer-filters::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
-        .explorer-filter-col { display: flex; flex-direction: column; gap: 2px; min-width: 120px; max-width: 180px; flex-shrink: 0; }
-        .explorer-filter-col label { font-size: 0.65rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; font-weight: 600; }
-        .explorer-filter-col input { background: white; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 5px; font-size: 0.75rem; color: var(--gray-900); outline: none; width: 100%; }
-        .explorer-filter-col input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,.1); }
-        .explorer-filter-col input.has-value { border-color: var(--blue); background: var(--blue-light); }
-        .explorer-filter-actions { display: flex; align-items: flex-end; gap: 4px; flex-shrink: 0; padding-bottom: 1px; }
+        /* Explorer filter pills */
+        .explorer-filters { display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; padding: 6px 0; align-items: center; }
+        .ef-pill { display: flex; align-items: center; gap: 4px; background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 4px 8px; font-size: 0.78rem; box-shadow: var(--shadow); }
+        .ef-pill.active { border-color: var(--blue); background: var(--blue-light); }
+        .ef-pill select { border: none; background: transparent; font-size: 0.76rem; color: var(--navy); font-weight: 600; outline: none; cursor: pointer; padding: 2px 0; max-width: 110px; }
+        .ef-pill .ef-op { border: none; background: var(--gray-100); font-size: 0.7rem; color: var(--gray-700); padding: 2px 6px; border-radius: 4px; outline: none; cursor: pointer; }
+        .ef-pill input, .ef-pill .ef-val { border: 1px solid var(--gray-200); background: white; font-size: 0.76rem; color: var(--gray-900); padding: 3px 6px; border-radius: 5px; outline: none; width: 120px; }
+        .ef-pill input:focus { border-color: var(--blue); }
+        .ef-pill .ef-remove { cursor: pointer; color: var(--gray-400); font-size: 0.85rem; padding: 0 2px; line-height: 1; }
+        .ef-pill .ef-remove:hover { color: var(--red); }
+        .ef-pill .ef-between { display: flex; align-items: center; gap: 3px; }
+        .ef-pill .ef-between input { width: 80px; }
+        .ef-pill .ef-between span { font-size: 0.7rem; color: var(--gray-500); }
+        .ef-add-btn { display: flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 8px; border: 1px dashed var(--gray-300); background: transparent; font-size: 0.76rem; color: var(--gray-500); cursor: pointer; transition: all 0.15s; }
+        .ef-add-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+        /* Multi-select list */
+        .ef-list-wrap { position: relative; }
+        .ef-list-dropdown { position: absolute; top: 100%; left: 0; z-index: 20; background: white; border: 1px solid var(--gray-200); border-radius: 8px; box-shadow: var(--shadow-lg); max-height: 200px; overflow-y: auto; min-width: 160px; display: none; }
+        .ef-list-dropdown.open { display: block; }
+        .ef-list-dropdown .ef-list-search { width: 100%; border: none; border-bottom: 1px solid var(--gray-100); padding: 6px 8px; font-size: 0.76rem; outline: none; }
+        .ef-list-dropdown label { display: flex; align-items: center; gap: 6px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; }
+        .ef-list-dropdown label:hover { background: var(--blue-light); }
+        .ef-list-dropdown input[type=checkbox] { accent-color: var(--blue); }
         .preview-table-wrap table th { cursor: pointer; position: relative; user-select: none; }
         .preview-table-wrap table th:hover { background: var(--gray-700); }
         .preview-table-wrap table th.selected-col { background: var(--blue); color: white; }
@@ -1484,7 +1497,7 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
         currentColumn: null,
         distinctValues: [],
         selectedValues: new Set(),
-        filters: {},
+        filters: [],
         filterDebounce: null
     };
 
@@ -1506,72 +1519,248 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
         }
         explorerState.currentTable = tableName;
         explorerState.currentColumn = null;
-        explorerState.filters = {};
+        explorerState.filters = [];
         document.getElementById('distinctPanel').style.display = 'none';
 
-        buildExplorerFilters(tableName);
+        renderExplorerFilters();
         runExplorerQuery(100);
     }
 
-    function buildExplorerFilters(tableName) {
+    function getColType(tableName, col) {
         const info = state.tables[tableName];
+        const idx = info.columns.indexOf(col);
+        return idx >= 0 ? info.types[idx] : 'string';
+    }
+
+    function opsForType(type) {
+        if (type === 'number') return [
+            { value: 'contains', label: 'contains' },
+            { value: 'equals', label: '=' },
+            { value: 'above', label: 'above' },
+            { value: 'below', label: 'below' },
+            { value: 'between', label: 'between' }
+        ];
+        if (type === 'date') return [
+            { value: 'contains', label: 'contains' },
+            { value: 'equals', label: '=' },
+            { value: 'after', label: 'after' },
+            { value: 'before', label: 'before' },
+            { value: 'between', label: 'between' }
+        ];
+        return [
+            { value: 'contains', label: 'contains' },
+            { value: 'equals', label: '=' },
+            { value: 'list', label: 'choose from list' }
+        ];
+    }
+
+    function renderExplorerFilters() {
         const container = document.getElementById('explorerFilters');
+        const tableName = explorerState.currentTable;
+        if (!tableName) { container.style.display = 'none'; return; }
         container.style.display = '';
+        const info = state.tables[tableName];
 
         let html = '';
-        for (let i = 0; i < info.columns.length; i++) {
-            const col = info.columns[i];
-            const listId = `ef_list_${i}`;
-            html += `<div class="explorer-filter-col">` +
-                `<label title="${col}">${col}</label>` +
-                `<input type="text" list="${listId}" placeholder="Filter..." ` +
-                `data-col="${col}" oninput="onExplorerFilterInput(this)" onfocus="populateFilterDatalist(this, '${tableName}', '${col}', '${listId}')">` +
-                `<datalist id="${listId}"></datalist>` +
-                `</div>`;
+        explorerState.filters.forEach((f, idx) => {
+            const colType = getColType(tableName, f.col);
+            const ops = opsForType(colType);
+            const isActive = f.val || (f.op === 'between' && (f.val || f.val2)) || (f.op === 'list' && f.listVals && f.listVals.length > 0);
+            html += `<div class="ef-pill${isActive ? ' active' : ''}" data-idx="${idx}">`;
+            html += `<select onchange="efChangeCol(${idx}, this.value)">` +
+                info.columns.map(c => `<option value="${c}"${c === f.col ? ' selected' : ''}>${c}</option>`).join('') +
+                `</select>`;
+            html += `<select class="ef-op" onchange="efChangeOp(${idx}, this.value)">` +
+                ops.map(o => `<option value="${o.value}"${o.value === f.op ? ' selected' : ''}>${o.label}</option>`).join('') +
+                `</select>`;
+
+            if (f.op === 'between') {
+                html += `<div class="ef-between">` +
+                    `<input type="text" placeholder="from" value="${f.val || ''}" oninput="efSetVal(${idx}, this.value)" onblur="efApplyOnBlur(${idx})" list="ef_dl_${idx}">` +
+                    `<span>to</span>` +
+                    `<input type="text" placeholder="to" value="${f.val2 || ''}" oninput="efSetVal2(${idx}, this.value)" onblur="efApplyOnBlur(${idx})" list="ef_dl2_${idx}">` +
+                    `</div>`;
+                html += `<datalist id="ef_dl_${idx}"></datalist><datalist id="ef_dl2_${idx}"></datalist>`;
+            } else if (f.op === 'list') {
+                const count = f.listVals ? f.listVals.length : 0;
+                html += `<div class="ef-list-wrap">` +
+                    `<button class="btn btn-sm btn-secondary" onclick="efToggleList(${idx})" style="font-size:0.73rem;">${count > 0 ? count + ' selected' : 'Select...'}</button>` +
+                    `<div class="ef-list-dropdown" id="ef_listdd_${idx}"></div>` +
+                    `</div>`;
+            } else {
+                html += `<input type="text" placeholder="${f.op === 'contains' ? 'Search...' : 'Value...'}" value="${f.val || ''}" oninput="efSetVal(${idx}, this.value)" onblur="efApplyOnBlur(${idx})" list="ef_dl_${idx}" onfocus="efLoadDatalist(${idx})">`;
+                html += `<datalist id="ef_dl_${idx}"></datalist>`;
+            }
+
+            html += `<span class="ef-remove" onclick="efRemove(${idx})">&times;</span>`;
+            html += `</div>`;
+        });
+
+        html += `<button class="ef-add-btn" onclick="efAdd()">+ Add Filter</button>`;
+        if (explorerState.filters.length > 0) {
+            html += `<button class="btn btn-sm btn-secondary" onclick="efClearAll()" style="font-size:0.73rem;">Clear All</button>`;
         }
-        html += `<div class="explorer-filter-actions">` +
-            `<button class="btn btn-sm btn-secondary" onclick="clearExplorerFilters()" title="Clear all filters">Clear</button>` +
-            `</div>`;
         container.innerHTML = html;
     }
 
-    function populateFilterDatalist(input, tableName, col, listId) {
-        const dl = document.getElementById(listId);
-        if (dl.childElementCount > 0) return;
+    function efAdd() {
+        const tableName = explorerState.currentTable;
+        if (!tableName) return;
+        const info = state.tables[tableName];
+        const usedCols = new Set(explorerState.filters.map(f => f.col));
+        const nextCol = info.columns.find(c => !usedCols.has(c)) || info.columns[0];
+        const colType = getColType(tableName, nextCol);
+        explorerState.filters.push({ col: nextCol, op: 'contains', val: '', val2: '', listVals: [] });
+        renderExplorerFilters();
+    }
+
+    function efRemove(idx) {
+        explorerState.filters.splice(idx, 1);
+        renderExplorerFilters();
+        runExplorerQuery(500);
+    }
+
+    function efClearAll() {
+        explorerState.filters = [];
+        renderExplorerFilters();
+        runExplorerQuery(100);
+    }
+
+    function efChangeCol(idx, col) {
+        const tableName = explorerState.currentTable;
+        const colType = getColType(tableName, col);
+        const ops = opsForType(colType);
+        explorerState.filters[idx].col = col;
+        if (!ops.find(o => o.value === explorerState.filters[idx].op)) {
+            explorerState.filters[idx].op = 'contains';
+        }
+        explorerState.filters[idx].val = '';
+        explorerState.filters[idx].val2 = '';
+        explorerState.filters[idx].listVals = [];
+        explorerState.filters[idx]._dlLoaded = false;
+        renderExplorerFilters();
+        runExplorerQuery(500);
+    }
+
+    function efChangeOp(idx, op) {
+        explorerState.filters[idx].op = op;
+        explorerState.filters[idx].val = '';
+        explorerState.filters[idx].val2 = '';
+        explorerState.filters[idx].listVals = [];
+        renderExplorerFilters();
+        runExplorerQuery(500);
+    }
+
+    function efSetVal(idx, val) {
+        explorerState.filters[idx].val = val;
+    }
+
+    function efSetVal2(idx, val) {
+        explorerState.filters[idx].val2 = val;
+    }
+
+    function efApplyOnBlur(idx) {
+        const pill = document.querySelector(`[data-idx="${idx}"]`);
+        const f = explorerState.filters[idx];
+        const isActive = f.val || (f.op === 'between' && (f.val || f.val2));
+        if (pill) pill.classList.toggle('active', !!isActive);
+        runExplorerQuery(500);
+    }
+
+    function efLoadDatalist(idx) {
+        const f = explorerState.filters[idx];
+        if (f._dlLoaded) return;
+        f._dlLoaded = true;
+        const tableName = explorerState.currentTable;
         try {
-            const vals = alasql(`SELECT DISTINCT [${col}] AS v FROM ${tableName} WHERE [${col}] IS NOT NULL ORDER BY [${col}] LIMIT 200`);
-            dl.innerHTML = vals.map(r => `<option value="${String(r.v).replace(/"/g, '&quot;')}">`).join('');
+            const vals = alasql(`SELECT DISTINCT [${f.col}] AS v FROM ${tableName} WHERE [${f.col}] IS NOT NULL ORDER BY [${f.col}] LIMIT 300`);
+            const dl = document.getElementById(`ef_dl_${idx}`);
+            if (dl) dl.innerHTML = vals.map(r => `<option value="${String(r.v).replace(/"/g, '&quot;')}">`).join('');
+            const dl2 = document.getElementById(`ef_dl2_${idx}`);
+            if (dl2) dl2.innerHTML = vals.map(r => `<option value="${String(r.v).replace(/"/g, '&quot;')}">`).join('');
         } catch {}
     }
 
-    function onExplorerFilterInput(input) {
-        const col = input.dataset.col;
-        const val = input.value.trim();
-        if (val) {
-            explorerState.filters[col] = val;
-            input.classList.add('has-value');
-        } else {
-            delete explorerState.filters[col];
-            input.classList.remove('has-value');
+    function efToggleList(idx) {
+        const dd = document.getElementById(`ef_listdd_${idx}`);
+        if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
+        document.querySelectorAll('.ef-list-dropdown.open').forEach(d => d.classList.remove('open'));
+        const f = explorerState.filters[idx];
+        const tableName = explorerState.currentTable;
+        if (!dd.innerHTML) {
+            try {
+                const vals = alasql(`SELECT DISTINCT [${f.col}] AS v FROM ${tableName} WHERE [${f.col}] IS NOT NULL ORDER BY [${f.col}] LIMIT 500`);
+                const selected = new Set(f.listVals || []);
+                let html = `<input type="text" class="ef-list-search" placeholder="Search..." oninput="efFilterListItems(this)">`;
+                html += vals.map(r => {
+                    const v = r.v == null ? '' : String(r.v);
+                    const checked = selected.has(v) ? ' checked' : '';
+                    return `<label data-val="${v.toLowerCase()}"><input type="checkbox"${checked} value="${v.replace(/"/g, '&quot;')}" onchange="efToggleListVal(${idx}, this)">${v || '<em>empty</em>'}</label>`;
+                }).join('');
+                dd.innerHTML = html;
+            } catch {}
         }
+        dd.classList.add('open');
+    }
+
+    function efFilterListItems(input) {
+        const q = input.value.toLowerCase();
+        const labels = input.parentElement.querySelectorAll('label');
+        labels.forEach(l => {
+            l.style.display = (l.dataset.val || '').includes(q) ? '' : 'none';
+        });
+    }
+
+    function efToggleListVal(idx, checkbox) {
+        const f = explorerState.filters[idx];
+        if (!f.listVals) f.listVals = [];
+        if (checkbox.checked) {
+            if (!f.listVals.includes(checkbox.value)) f.listVals.push(checkbox.value);
+        } else {
+            f.listVals = f.listVals.filter(v => v !== checkbox.value);
+        }
+        const btn = document.querySelector(`[data-idx="${idx}"] .ef-list-wrap button`);
+        if (btn) btn.textContent = f.listVals.length > 0 ? f.listVals.length + ' selected' : 'Select...';
+        const pill = document.querySelector(`[data-idx="${idx}"]`);
+        if (pill) pill.classList.toggle('active', f.listVals.length > 0);
         clearTimeout(explorerState.filterDebounce);
         explorerState.filterDebounce = setTimeout(() => runExplorerQuery(500), 200);
     }
 
-    function clearExplorerFilters() {
-        explorerState.filters = {};
-        document.querySelectorAll('.explorer-filter-col input').forEach(inp => {
-            inp.value = '';
-            inp.classList.remove('has-value');
-        });
-        runExplorerQuery(100);
-    }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.ef-list-wrap')) {
+            document.querySelectorAll('.ef-list-dropdown.open').forEach(d => d.classList.remove('open'));
+        }
+    });
 
     function buildExplorerWhereClause() {
         const parts = [];
-        for (const [col, val] of Object.entries(explorerState.filters)) {
-            const escaped = val.replace(/'/g, "''");
-            parts.push(`CAST([${col}] AS STRING) LIKE '%${escaped}%'`);
+        for (const f of explorerState.filters) {
+            const col = `[${f.col}]`;
+            const esc = v => v.replace(/'/g, "''");
+            if (f.op === 'contains' && f.val) {
+                parts.push(`CAST(${col} AS STRING) LIKE '%${esc(f.val)}%'`);
+            } else if (f.op === 'equals' && f.val) {
+                parts.push(`CAST(${col} AS STRING) = '${esc(f.val)}'`);
+            } else if (f.op === 'above' && f.val) {
+                parts.push(`CAST(${col} AS NUMBER) > ${parseFloat(f.val) || 0}`);
+            } else if (f.op === 'below' && f.val) {
+                parts.push(`CAST(${col} AS NUMBER) < ${parseFloat(f.val) || 0}`);
+            } else if (f.op === 'after' && f.val) {
+                parts.push(`${col} > '${esc(f.val)}'`);
+            } else if (f.op === 'before' && f.val) {
+                parts.push(`${col} < '${esc(f.val)}'`);
+            } else if (f.op === 'between' && f.val && f.val2) {
+                const colType = getColType(explorerState.currentTable, f.col);
+                if (colType === 'number') {
+                    parts.push(`CAST(${col} AS NUMBER) >= ${parseFloat(f.val) || 0} AND CAST(${col} AS NUMBER) <= ${parseFloat(f.val2) || 0}`);
+                } else {
+                    parts.push(`${col} >= '${esc(f.val)}' AND ${col} <= '${esc(f.val2)}'`);
+                }
+            } else if (f.op === 'list' && f.listVals && f.listVals.length > 0) {
+                const inList = f.listVals.map(v => `'${esc(v)}'`).join(',');
+                parts.push(`CAST(${col} AS STRING) IN (${inList})`);
+            }
         }
         return parts.length > 0 ? ' WHERE ' + parts.join(' AND ') : '';
     }
@@ -1581,17 +1770,21 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
         if (!tableName) return;
         const where = buildExplorerWhereClause();
         const limitClause = limit ? ` LIMIT ${limit}` : '';
-        const rows = alasql(`SELECT * FROM ${tableName}${where}${limitClause}`);
-        const total = alasql(`SELECT COUNT(*) AS c FROM ${tableName}${where}`)[0].c;
-        const info = state.tables[tableName];
-        const activeFilters = Object.keys(explorerState.filters).length;
-        let infoText = limit && total > limit
-            ? `Showing first ${rows.length.toLocaleString()} of ${total.toLocaleString()} rows`
-            : `Showing ${total.toLocaleString()} rows`;
-        if (activeFilters > 0) infoText += ` (filtered from ${info.rowCount.toLocaleString()})`;
-        infoText += ' • Click a column header for distinct values';
-        document.getElementById('explorerInfo').textContent = infoText;
-        renderExplorerPreview(rows, tableName);
+        try {
+            const rows = alasql(`SELECT * FROM ${tableName}${where}${limitClause}`);
+            const total = alasql(`SELECT COUNT(*) AS c FROM ${tableName}${where}`)[0].c;
+            const info = state.tables[tableName];
+            const activeFilters = explorerState.filters.filter(f => f.val || (f.op === 'list' && f.listVals && f.listVals.length > 0)).length;
+            let infoText = limit && total > limit
+                ? `Showing first ${rows.length.toLocaleString()} of ${total.toLocaleString()} rows`
+                : `Showing ${total.toLocaleString()} rows`;
+            if (activeFilters > 0) infoText += ` (filtered from ${info.rowCount.toLocaleString()})`;
+            infoText += ' \u2022 Click a column header for distinct values';
+            document.getElementById('explorerInfo').textContent = infoText;
+            renderExplorerPreview(rows, tableName);
+        } catch (e) {
+            document.getElementById('explorerInfo').textContent = 'Filter error: ' + e.message;
+        }
     }
 
     function explorerShowAll() {
