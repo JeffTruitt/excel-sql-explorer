@@ -835,6 +835,7 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
     async function deleteFile(fileName) {
         if (!confirm('Delete "' + fileName + '" and its data from browser storage?')) return;
         let tablesAffected = 0;
+        const legacyTables = [];
         for (const [t, meta] of Object.entries(state.tables)) {
             const files = meta.sourceFiles || [meta.sourceFile];
             if (!files.includes(fileName)) continue;
@@ -843,13 +844,20 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
                 alasql('DROP TABLE IF EXISTS ' + t);
                 delete state.tables[t];
             } else {
-                const remaining = alasql(`SELECT * FROM ${t}`).filter(row => {
-                    if (row._sourceFile) return row._sourceFile !== fileName;
-                    return true;
-                });
+                const all = alasql(`SELECT * FROM ${t}`);
+                const remaining = all.filter(row => row[SOURCE_COL] !== fileName);
+                const removed = all.length - remaining.length;
+                const expected = (meta.rowsByFile && meta.rowsByFile[fileName]) || 0;
+                // If nothing was removed but this file should contribute rows, the
+                // rows predate per-row source tracking (older import). Skip rather
+                // than silently leaving stale data, and flag for a re-import notice.
+                if (removed === 0 && expected > 0) {
+                    legacyTables.push(t);
+                    continue;
+                }
                 meta.sourceFiles = files.filter(f => f !== fileName);
                 if (meta.sourceFile === fileName) meta.sourceFile = meta.sourceFiles[0] || '';
-                delete meta.rowsByFile[fileName];
+                if (meta.rowsByFile) delete meta.rowsByFile[fileName];
                 alasql(`DROP TABLE IF EXISTS ${t}`);
                 alasql(`CREATE TABLE ${t}`);
                 alasql.tables[t].data = remaining;
@@ -861,7 +869,11 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
         refreshUI();
         updateStorageInfo();
         renderImportFileTable();
-        showToast('Deleted: "' + fileName + '"');
+        if (legacyTables.length > 0) {
+            showToast('Deleted "' + fileName + '", but ' + legacyTables.length + ' shared table(s) kept old rows. Re-import those files to enable per-file delete.');
+        } else {
+            showToast('Deleted: "' + fileName + '"');
+        }
     }
 
     async function deleteAllData() {
@@ -887,6 +899,11 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
     };
 
     const MAX_QUERY_HISTORY = 50;
+    // Hidden per-row marker stamping each row with the file it was imported from.
+    // Lets deleteFile() remove only the rows that came from a given file when a
+    // table is shared across multiple imports. Stripped from all result/display
+    // surfaces and excluded from table column metadata so users never see it.
+    const SOURCE_COL = '__srcFile';
 
     // --- Collapsible sidebar sections ---
     function toggleSidebarSection(id) {
@@ -1008,6 +1025,7 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
             const json = XLSX.utils.sheet_to_json(ws, { defval: null });
             if (json.length === 0) continue;
             normalizeDates(json);
+            for (const r of json) r[SOURCE_COL] = file.name;
 
             const tableName = sanitizeTableName(sheetName);
             
@@ -1032,7 +1050,7 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
                 alasql(`CREATE TABLE ${tableName}`);
                 alasql.tables[tableName].data = json;
                 
-                const columns = Object.keys(json[0]);
+                const columns = Object.keys(json[0]).filter(c => c !== SOURCE_COL);
                 const types = columns.map(col => inferType(json, col));
                 const samples = columns.map(col => {
                     for (const r of json.slice(0, 20)) { if (r[col] != null) return String(r[col]).slice(0, 28); }
@@ -1424,7 +1442,7 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
 
     function renderResults(rows) {
         if (!rows || rows.length === 0) return;
-        const cols = Object.keys(rows[0]);
+        const cols = Object.keys(rows[0]).filter(c => c !== SOURCE_COL);
         const numericCols = new Set(cols.filter(c => typeof rows[0][c] === 'number'));
         
         const maxRows = 5000;
@@ -1466,7 +1484,7 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
 
     function exportCSV() {
         if (!state.lastResult || state.lastResult.length === 0) return;
-        const cols = Object.keys(state.lastResult[0]);
+        const cols = Object.keys(state.lastResult[0]).filter(c => c !== SOURCE_COL);
         let csv = cols.join(',') + '\n';
         for (const row of state.lastResult) {
             csv += cols.map(c => {
