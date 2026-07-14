@@ -537,13 +537,17 @@ WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
 
                     <div class="guide-section">
                         <h3>4. Numeric Casting</h3>
-                        <p>All columns are text by default. Cast before arithmetic, comparison, or ORDER BY:</p>
-<pre>SELECT ProductCode,
-       ROUND(CAST(SUM(CAST(CurrBook AS NUMBER)) AS NUMBER), 2) AS Total
+                        <p>Numeric columns are now auto-coerced to real numbers on load (currency symbols, thousands separators, and accounting-style parentheses are stripped), so <code>SUM</code>, <code>AVG</code>, and <code>ORDER BY</code> work directly. Explicit <code>CAST</code> is only needed for columns the app classifies as text (mixed content):</p>
+<pre>-- Now works directly (column detected as numeric):
+SELECT ProductCode,
+       ROUND(SUM(CurrBook), 2) AS Total
 FROM NMD
 WHERE InstrumentID IS NOT NULL
 GROUP BY ProductCode
-ORDER BY CAST(SUM(CAST(CurrBook AS NUMBER)) AS NUMBER) DESC</pre>
+ORDER BY Total DESC
+
+-- CAST still safe/needed for text-classified columns:
+ROUND(CAST(SUM(CAST(CurrBook AS NUMBER)) AS NUMBER), 2) AS Total</pre>
                     </div>
 
                     <div class="guide-section">
@@ -744,6 +748,9 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
                             if (converted) row[col] = converted;
                         }
                     }
+                }
+                if (meta.columns && meta.types) {
+                    coerceNumericColumns(rows, meta.columns, meta.types);
                 }
                 alasql(`CREATE TABLE ${name}`);
                 alasql.tables[name].data = rows;
@@ -1030,6 +1037,10 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
             const tableName = sanitizeTableName(sheetName);
             
             if (alasql.tables[tableName]) {
+                const existingMeta = state.tables[tableName];
+                if (existingMeta && existingMeta.columns && existingMeta.types) {
+                    coerceNumericColumns(json, existingMeta.columns, existingMeta.types);
+                }
                 const existing = alasql(`SELECT * FROM ${tableName}`);
                 const combined = existing.concat(json);
                 alasql(`DROP TABLE IF EXISTS ${tableName}`);
@@ -1047,11 +1058,13 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
                 }
                 state.tables[tableName].rowsByFile[file.name] = json.length;
             } else {
-                alasql(`CREATE TABLE ${tableName}`);
-                alasql.tables[tableName].data = json;
-                
                 const columns = Object.keys(json[0]).filter(c => c !== SOURCE_COL);
                 const types = columns.map(col => inferType(json, col));
+                coerceNumericColumns(json, columns, types);
+
+                alasql(`CREATE TABLE ${tableName}`);
+                alasql.tables[tableName].data = json;
+
                 const samples = columns.map(col => {
                     for (const r of json.slice(0, 20)) { if (r[col] != null) return String(r[col]).slice(0, 28); }
                     return null;
@@ -1082,12 +1095,58 @@ FROM LOAN WHERE CAST(AsOfDate AS STRING) LIKE '2025-04-30%'</pre>
             if (typeof v === 'number') { hasNum = true; continue; }
             if (typeof v === 'string') {
                 if (/^\d{4}-\d{2}-\d{2}/.test(v)) { hasDate = true; continue; }
+                if (isNumericString(v)) { hasNum = true; continue; }
                 hasStr = true;
             }
         }
         if (hasDate && !hasStr && !hasNum) return 'date';
         if (hasNum && !hasStr && !hasDate) return 'number';
         return 'string';
+    }
+
+    // A string that represents a number, allowing currency symbols, thousands
+    // separators, surrounding whitespace, and parenthesised negatives.
+    function isNumericString(v) {
+        if (typeof v !== 'string') return false;
+        const s = v.trim();
+        if (s === '') return false;
+        return /^\(?-?\$?\s?-?[\d,]*\.?\d+\)?$/.test(s) && /\d/.test(s);
+    }
+
+    // Convert a numeric-looking value to a real JS number, or null if it can't
+    // be parsed. Strips currency symbols, thousands separators, and whitespace,
+    // and treats parenthesised values as negative (accounting notation).
+    function coerceNumber(v) {
+        if (v === null || v === undefined || v === '') return null;
+        if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+        if (typeof v !== 'string') return null;
+        let s = v.trim();
+        if (s === '') return null;
+        let negative = false;
+        if (/^\(.*\)$/.test(s)) { negative = true; s = s.slice(1, -1); }
+        s = s.replace(/[$\s,]/g, '');
+        if (s.startsWith('-')) { negative = true; s = s.slice(1); }
+        if (!/^\d*\.?\d+$/.test(s)) return null;
+        const n = parseFloat(s);
+        if (!Number.isFinite(n)) return null;
+        return negative ? -n : n;
+    }
+
+    // Coerce every cell in the app-detected numeric columns of a row set into
+    // real JS numbers. Excel exports mix numeric and text cells within the same
+    // column across monthly files, which makes AlaSQL SUM/AVG return NULL. This
+    // normalises them so aggregates work without per-query CAST gymnastics.
+    function coerceNumericColumns(rows, columns, types) {
+        if (!rows || rows.length === 0) return;
+        const numericCols = columns.filter((c, i) => types[i] === 'number');
+        if (numericCols.length === 0) return;
+        for (const row of rows) {
+            for (const col of numericCols) {
+                const current = row[col];
+                if (typeof current === 'number' || current === null || current === undefined) continue;
+                row[col] = coerceNumber(current);
+            }
+        }
     }
 
     function refreshUI() {
